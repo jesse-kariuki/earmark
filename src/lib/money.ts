@@ -1,5 +1,5 @@
 // Money is integers (minor units, cents). Strings like "350.00" exist only at the PayPal boundary.
-// M1 extends this module (formatting, KES estimate); M0 needs only the boundary conversions.
+// Isomorphic: no env, no Node imports (client components format money too).
 
 const DECIMAL_RE = /^(\d+)(?:\.(\d{1,2}))?$/;
 
@@ -26,4 +26,54 @@ export function decimalStringToMinor(value: string): number {
   const result = major * 100 + minor;
   assertMinor(result);
   return result;
+}
+
+/** Doc names (02-DATA-MODEL). */
+export const toMinor = decimalStringToMinor;
+export const toPayPalValue = minorToDecimalString;
+
+export function addMinor(...amounts: number[]): number {
+  let total = 0;
+  for (const a of amounts) {
+    assertMinor(a);
+    total += a;
+  }
+  assertMinor(total);
+  return total;
+}
+
+/** a − b; throws rather than going negative. */
+export function subMinor(a: number, b: number): number {
+  assertMinor(a);
+  assertMinor(b);
+  const result = a - b;
+  assertMinor(result);
+  return result;
+}
+
+function groupThousands(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+const SYMBOLS: Record<string, string> = { USD: "$" };
+
+/** 35000, "USD" → "$350.00"; other currencies → "KES 45,150.00". */
+export function formatMoney(amountMinor: number, currency: string): string {
+  const [major = "0", minor = "00"] = minorToDecimalString(amountMinor).split(".");
+  const body = `${groupThousands(major)}.${minor}`;
+  const symbol = SYMBOLS[currency];
+  return symbol ? `${symbol}${body}` : `${currency} ${body}`;
+}
+
+/** USD minor → KES minor at a fixed display rate (env KES_DISPLAY_RATE). Display only, never for money decisions. */
+export function kesEstimate(usdMinor: number, rate: number): number {
+  assertMinor(usdMinor);
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error(`Invalid KES display rate: ${rate}`);
+  return Math.round(usdMinor * rate);
+}
+
+/** "≈ KES 45,150 (estimate)" */
+export function formatKesEstimate(usdMinor: number, rate: number): string {
+  const kesMajor = Math.round(kesEstimate(usdMinor, rate) / 100);
+  return `≈ KES ${groupThousands(String(kesMajor))} (estimate)`;
 }
