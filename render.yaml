@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: earmark
+    runtime: node
+    plan: free            # judging runs to Dec 15 — free tier spins down when idle; no persistent disk (we seed on boot)
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm db:reset && pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PAYPAL_MODE
+        value: sandbox
+      - key: AI_MODE
+        value: fixture
+      - key: JUDGE_MODE
+        value: "true"
+      - fromGroup: earmark-secrets
