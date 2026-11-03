@@ -13,6 +13,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
-    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture" },
+    // Separate DB so e2e never touches the dev data; ANTHROPIC_API_KEY blank so nothing calls a live model.
+    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture", DATABASE_PATH: ".data/e2e.db", ANTHROPIC_API_KEY: "" },
   },
 });

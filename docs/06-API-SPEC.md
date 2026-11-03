@@ -10,7 +10,7 @@ rate-limit write routes (simple in-memory token bucket per IP, 30/min) on the ho
 | `POST /api/contracts/compile` | `{ sentence }` | LLM compile → draft contract + resolution warnings. No DB write. |
 | `POST /api/earmarks` | `{ sentence, contract, senderName, recipientName }` | Validates; creates earmark `draft`; events `earmark.created`, `contract.compiled` |
 | `POST /api/earmarks/:id/approve-contract` | — | Freezes contract (hash) → `awaiting_authorization`; `contract.approved` |
-| `POST /api/earmarks/:id/paypal/order` | — | Orders v2 create (AUTHORIZE) → `{ orderId }` |
+| `POST /api/earmarks/:id/paypal/order` | — | Orders v2 create (AUTHORIZE) → `{ orderId }` (via `lib/orchestrator`, the only PayPal caller) |
 | `POST /api/earmarks/:id/paypal/authorize` | `{ orderId }` | Authorize → store auth id → `held` |
 | `GET  /api/earmarks` | `?status=` | List for ledger (joined with payments, invoices counts) |
 | `GET  /api/earmarks/:id` | — | Detail incl. money bar numbers `{ heldMinor, sentMinor, releasedMinor }` |
@@ -47,11 +47,12 @@ rate-limit write routes (simple in-memory token bucket per IP, 30/min) on the ho
 | `POST /api/paypal/webhook` | See 03 §3.5 |
 | `POST /api/admin/reset` | Header `x-reset-token` or judge mode → drop/migrate/seed |
 | `POST /api/lab/:scenario` | Runs an Attack Lab scenario end-to-end (see 09) |
+| `POST /api/ai-mode` | `{ mode: "fixture" \| "live" }` → sets the per-browser AI mode cookie |
 | `GET  /api/health` | `{ ok, paypalMode, aiMode, dbSeededAt }` (Render health check) |
 
 ## Error codes
 
-`VALIDATION`, `NOT_FOUND`, `CONFLICT_DUPLICATE`, `POLICY_BLOCKED` (with `ruleIds`), `PAYPAL_ERROR`
+`VALIDATION`, `NOT_FOUND`, `INVALID_STATE` (409, wrong Earmark status for the action), `CONFLICT_DUPLICATE`, `POLICY_BLOCKED` (with `ruleIds`), `PAYPAL_ERROR`
 (with `debugId`), `AI_ERROR`, `RATE_LIMITED`, `FROZEN`.
 
 ## Integration tests (`tests/api/*.test.ts`)

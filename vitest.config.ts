@@ -13,7 +13,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "evals/**/*.test.ts"],
-    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture" },
+    // Tests never make live calls: no API key, in-memory DB unless a test opens its own.
+    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture", ANTHROPIC_API_KEY: "", DATABASE_PATH: ":memory:" },
     testTimeout: 20_000,
     coverage: {
       provider: "v8",

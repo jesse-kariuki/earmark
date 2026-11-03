@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Up to $120 for Wanjiru's hospital bill at Riverbend Medical Centre.",
+  "output": {
+    "purpose": {
+      "category": "medical",
+      "description": "Hospital bill for Wanjiru",
+      "beneficiary": "Wanjiru",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Riverbend Medical Centre"
+    },
+    "capMinor": 12000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

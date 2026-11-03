@@ -1,0 +1,1 @@
+ALTER TABLE `institutions` ADD `aliases` text DEFAULT '[]' NOT NULL;

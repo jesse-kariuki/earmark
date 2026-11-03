@@ -34,3 +34,8 @@ export function getDb(): Db {
   globalForDb.__earmarkDb ??= openAppDb(env.DATABASE_PATH).db;
   return globalForDb.__earmarkDb;
 }
+
+/** Tests swap in an in-memory DB before calling route handlers. */
+export function setDb(db: Db): void {
+  globalForDb.__earmarkDb = db;
+}

@@ -1,0 +1,139 @@
+[
+  {
+    "id": "c01",
+    "sentence": "Pay Brian's Term 1 fees at Lakeview Secondary School, up to $400, only against a real invoice.",
+    "expected": {
+      "capMinor": 40000,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Lakeview Secondary School",
+      "approvalThresholdMinor": 40000,
+      "institutionId": "ins_lakeview",
+      "warnings": []
+    }
+  },
+  {
+    "id": "c02",
+    "sentence": "Send up to $350 to Riverbend Academy for Kevin's Term 1 2027 school fees. Only pay a signed invoice.",
+    "expected": {
+      "capMinor": 35000,
+      "category": "school_fees",
+      "evidence": "signed_invoice",
+      "institutionName": "Riverbend Academy",
+      "approvalThresholdMinor": 35000,
+      "institutionId": "ins_riverbend",
+      "warnings": []
+    }
+  },
+  {
+    "id": "c03",
+    "sentence": "Cover Achieng's Term 1 fees at Lakeview Secondary, maximum 450 dollars, and ask me before paying anything over $300.",
+    "expected": {
+      "capMinor": 45000,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Lakeview Secondary",
+      "approvalThresholdMinor": 30000,
+      "institutionId": "ins_lakeview",
+      "warnings": []
+    }
+  },
+  {
+    "id": "c04",
+    "sentence": "Up to $120 for Wanjiru's hospital bill at Riverbend Medical Centre.",
+    "expected": {
+      "capMinor": 12000,
+      "category": "medical",
+      "evidence": "invoice_any",
+      "institutionName": "Riverbend Medical Centre",
+      "approvalThresholdMinor": 12000,
+      "institutionId": null,
+      "warnings": [
+        "PAYEE_UNKNOWN"
+      ]
+    }
+  },
+  {
+    "id": "c05",
+    "sentence": "Pay Lakeview Secondary Schools Ltd up to $400 for Brian's fees.",
+    "expected": {
+      "capMinor": 40000,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Lakeview Secondary Schools Ltd",
+      "approvalThresholdMinor": 40000,
+      "institutionId": null,
+      "warnings": [
+        "PAYEE_UNVERIFIED"
+      ]
+    }
+  },
+  {
+    "id": "c06",
+    "sentence": "Pay rent for Mama Njeri's house, $250 max, to Greenhill Properties. I need to see the invoice and approve it first.",
+    "expected": {
+      "capMinor": 25000,
+      "category": "rent",
+      "evidence": "invoice_and_approval",
+      "institutionName": "Greenhill Properties",
+      "approvalThresholdMinor": 25000,
+      "institutionId": null,
+      "warnings": [
+        "PAYEE_UNKNOWN"
+      ]
+    }
+  },
+  {
+    "id": "c07",
+    "sentence": "Pay Brian's school fees at Lakeview, up to $400.50.",
+    "expected": {
+      "capMinor": 40050,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Lakeview",
+      "approvalThresholdMinor": 40050,
+      "institutionId": "ins_lakeview",
+      "warnings": []
+    }
+  },
+  {
+    "id": "c08",
+    "sentence": "Put aside $300 for Kevin's Term 2 2027 fees at Riverbend Academy, valid until January 20, 2027.",
+    "expected": {
+      "capMinor": 30000,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Riverbend Academy",
+      "approvalThresholdMinor": 30000,
+      "institutionId": "ins_riverbend",
+      "warnings": [],
+      "expiresAt": "2027-01-20T23:59:59.000Z"
+    }
+  },
+  {
+    "id": "c09",
+    "sentence": "Pay Achieng's fees at Lakeview Secondary School. It should be about $380 but never more than $400.",
+    "expected": {
+      "capMinor": 40000,
+      "category": "school_fees",
+      "evidence": "invoice_any",
+      "institutionName": "Lakeview Secondary School",
+      "approvalThresholdMinor": 40000,
+      "institutionId": "ins_lakeview",
+      "warnings": []
+    }
+  },
+  {
+    "id": "c10",
+    "sentence": "Pay $200 to Riverbend Academy for Wanjiru's uniform and transport.",
+    "expected": {
+      "capMinor": 20000,
+      "category": "other",
+      "evidence": "invoice_any",
+      "institutionName": "Riverbend Academy",
+      "approvalThresholdMinor": 20000,
+      "institutionId": "ins_riverbend",
+      "warnings": []
+    }
+  }
+]

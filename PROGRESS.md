@@ -4,12 +4,12 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M2 — Compose, contract, authorize** (see `docs/PLAN.md`) · M0 open item: Render deploy
+**M2 — Compose, contract, authorize** (code done; 2 human items) → next **M3 — Policy gate & tickets** · M0 open item: Render deploy
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
 - [x] M1 Data, money, event chain — Nov 3
-- [ ] M2 Compose, contract, authorize — Nov 3
+- [ ] M2 Compose, contract, authorize — Nov 3 · all code + tests done; waiting on human: live contract recording (`pnpm eval:contracts:live`, needs ANTHROPIC_API_KEY) and one sandbox PayPal Buttons run
 - [ ] M3 Policy gate & tickets — Nov 4
 - [ ] M4 Legacy invoice intake + eval set — Nov 4
 - [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5
@@ -32,8 +32,8 @@
 | Agent Toolkit version + read tool names | ✅ | `@paypal/agent-toolkit` 1.11.0. Read tools: `get_order` (`orders: { get: true }`), `list_transactions` (`transactions: { list: true }`). No payouts tool → Payouts stays on REST |
 
 ## Numbers for the README / video
-- Tests: 100 passing (M1) · events + money coverage: 100% · policy coverage: —% (rules arrive in M3)
-- Evals (fixture): —/12 invoices, —/10 contracts
+- Tests: 154 passing (M2) + 5 Playwright · events + money + contract coverage: 100% · policy coverage: —% (rules arrive in M3)
+- Evals (fixture): —/12 invoices, 10/10 contracts (hand-authored fixtures until a live run is recorded)
 - Evals (live, model —): —/12, —/10
 - Attack Lab: —/5 blocked
 
@@ -52,6 +52,12 @@
 - 2026-11-03 · `events.created_at` is a plain ms integer (not Drizzle timestamp mode) · the hashed value must round-trip exactly.
 - 2026-11-03 · `contract/schema.ts` and `policy/types.ts` (RuleResult, RULE_IDS) created in M1 · needed to type DB columns; M2/M3 extend them.
 - 2026-11-03 · Seeded demo Earmark uses `AUTH-SEED-…` ids that the in-memory mock PayPal doesn't know · M5 must let the mock accept/register seeded authorizations. In sandbox mode the demo is seeded `awaiting_authorization`.
+- 2026-11-03 · AI SDK v7: `generateText` + `Output.object` + `instructions` (not `generateObject`/`system`) · doc 04 updated.
+- 2026-11-03 · Contract draft uses `null` for unstated expiry/threshold/period; code applies defaults · avoids the model inventing dates. Doc 04 updated.
+- 2026-11-03 · Payee resolution matches verified institutions only (+ `institutions.aliases` column, migration 0002) · the lookalike exists in the registry, so "exact match" alone would resolve it. Docs 02/04 updated.
+- 2026-11-03 · Order/authorize routes call `lib/orchestrator` (only module allowed to import the PayPal client) · new `INVALID_STATE` error code. Doc 06 updated.
+- 2026-11-03 · Route handlers read the AI-mode cookie from the Request (not `next/headers`) · keeps handlers callable from Vitest.
+- 2026-11-03 · The 10 contract fixtures are hand-authored drafts · they prove the code path, not the model. A live run (`pnpm eval:contracts:live`) records real outputs that fixture mode then prefers.
 - 2026-11-03 · `pnpm db:reset` and `pnpm keys` run via `tsx` (a devDependency) · Render's default install includes devDeps; revisit if the build sets `NODE_ENV=production` before install.
 
 ## Session log
@@ -60,3 +66,4 @@
 - 2026-11-02 · M0 · Day-0 sandbox smoke fully green (OAuth, partial final capture, idempotent replay, payout SUCCESS, void, webhook names, toolkit 1.11.0). Only remaining M0 item: Render deploy + `/api/health` on the public URL.
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.
 - 2026-11-03 · M1 · Drizzle schema + migrations (incl. append-only triggers), `createDb`/`getDb`, seed-on-boot via `instrumentation.ts`, seed (3 institutions, 9 earmarks, 115 events, all chains verify), `db:reset`/`keys`, money helpers, canonical/chain/append + parity test, test helpers. 100 tests green; `next build` + boot seed verified. · Next: M2.
+- 2026-11-03 · M2 · `lib/ai/call.ts` (fixture/recorded/live + record + trace.step), contract draft/compile/registry, 10 contract evals (fixture 10/10), API routes (compile, create, approve, order, authorize, detail, events, freeze, ai-mode), orchestrator authorize, header (persona switcher, AI toggle), MoneyBar/StatusChip/ContractPanel/EventTimeline, `/compose`, `/earmarks/[id]`, PayPal Buttons (sandbox) + mock hold. 154 tests + 5 e2e green. · Human: ANTHROPIC_API_KEY → `pnpm eval:contracts:live`; try the sandbox Buttons once. Next: M3.

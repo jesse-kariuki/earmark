@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay Lakeview Secondary Schools Ltd up to $400 for Brian's fees.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "School fees for Brian",
+      "beneficiary": "Brian",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Lakeview Secondary Schools Ltd"
+    },
+    "capMinor": 40000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

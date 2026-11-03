@@ -10,6 +10,9 @@
 | Explanation | Plain-language trace + EN/SW messages | Reject any message mentioning an amount or payee not in the log |
 
 All LLM calls: `temperature: 0`, model from `env.ANTHROPIC_MODEL`, via `@ai-sdk/anthropic`.
+Fixture files: `evals/fixtures/<stage>/<inputHash>.json` (hand-authored) and
+`evals/fixtures/recorded/<stage>/<inputHash>.json` (live outputs; preferred when present). The header toggle sets a
+per-browser `earmark_ai_mode` cookie; live is refused when no key is configured.
 Wrap every call in `src/lib/ai/call.ts` which (a) in `AI_MODE=fixture` returns the recorded output,
 (b) in `live` calls the model and, if `AI_RECORD=1`, writes the output to `evals/fixtures/recorded/`,
 (c) appends a `trace.step` event `{stage, model, latencyMs, inputHash, outputSummary}`.
@@ -48,9 +51,12 @@ export const IntentContract = z.object({
 ```
 
 **Compile flow** (`src/lib/contract/compile.ts`):
-1. `generateObject({ schema: IntentContractDraft, system, prompt: sentence })` — draft omits `institutionId`.
+1. `generateText({ output: Output.object({ schema: IntentContractDraft }), instructions, prompt: sentence })`
+   (AI SDK v7: `generateObject` and `system` are deprecated). The draft omits `institutionId`; fields the sender
+   did not state (`expiresAt`, `approvalThresholdMinor`, `purpose.period`) are `null` and code fills them.
 2. Code resolves `payee.institutionName` against the registry (case-insensitive exact or alias match;
-   **no fuzzy match** — a lookalike must not resolve). Unresolved → contract shows a warning and the sender
+   **no fuzzy match** — a lookalike must not resolve). Only **verified** institutions resolve; an exact match on an
+   unverified one (the seeded lookalike) yields a `PAYEE_UNVERIFIED` warning. Aliases live in `institutions.aliases`. Unresolved → contract shows a warning and the sender
    picks from a dropdown of verified institutions.
 3. Code applies defaults (expiry 3 days if unspecified — honor period; threshold = cap if unspecified,
    i.e. legacy uploads still require approval via evidence rule).

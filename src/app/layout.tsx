@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
+import Link from "next/link";
+import { AiModeToggle } from "@/components/AiModeToggle";
+import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { SandboxBadge } from "@/components/SandboxBadge";
+import { AI_MODE_COOKIE, resolveAiMode } from "@/lib/ai/runtime";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,17 +24,24 @@ export const metadata: Metadata = {
   description: "Money that remembers why it was sent.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const aiMode = resolveAiMode((await cookies()).get(AI_MODE_COOKIE)?.value);
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <span className="font-semibold tracking-tight">Earmark</span>
-          <SandboxBadge />
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="font-semibold tracking-tight">
+              Earmark
+            </Link>
+            <SandboxBadge />
+          </div>
+          <PersonaSwitcher />
+          <AiModeToggle initial={aiMode} liveAvailable={Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL)} />
         </header>
         {children}
       </body>

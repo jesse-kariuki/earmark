@@ -1,0 +1,26 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay Achieng's fees at Lakeview Secondary School. It should be about $380 but never more than $400.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "School fees for Achieng",
+      "beneficiary": "Achieng",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Lakeview Secondary School"
+    },
+    "capMinor": 40000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": [
+      "Sender expects about $380; $400 is the hard maximum."
+    ]
+  },
+  "model": "hand-authored"
+}

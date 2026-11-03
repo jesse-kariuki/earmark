@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Put aside $300 for Kevin's Term 2 2027 fees at Riverbend Academy, valid until January 20, 2027.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "Term 2 2027 fees for Kevin",
+      "beneficiary": "Kevin",
+      "period": "Term 2 2027"
+    },
+    "payee": {
+      "institutionName": "Riverbend Academy"
+    },
+    "capMinor": 30000,
+    "currency": "USD",
+    "expiresAt": "2027-01-20T23:59:59.000Z",
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

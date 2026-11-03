@@ -1,0 +1,26 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay $200 to Riverbend Academy for Wanjiru's uniform and transport.",
+  "output": {
+    "purpose": {
+      "category": "other",
+      "description": "Uniform and transport for Wanjiru",
+      "beneficiary": "Wanjiru",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Riverbend Academy"
+    },
+    "capMinor": 20000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": [
+      "Uniform and transport are not tuition; categorised as other."
+    ]
+  },
+  "model": "hand-authored"
+}

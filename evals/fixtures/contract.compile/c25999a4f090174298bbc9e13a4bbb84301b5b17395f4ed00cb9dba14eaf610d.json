@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Send up to $350 to Riverbend Academy for Kevin's Term 1 2027 school fees. Only pay a signed invoice.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "Term 1 2027 school fees for Kevin",
+      "beneficiary": "Kevin",
+      "period": "Term 1 2027"
+    },
+    "payee": {
+      "institutionName": "Riverbend Academy"
+    },
+    "capMinor": 35000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "signed_invoice"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

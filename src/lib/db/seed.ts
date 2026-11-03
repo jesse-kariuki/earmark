@@ -44,6 +44,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
         {
           id: "ins_lakeview",
           name: "Lakeview Secondary School",
+          aliases: ["Lakeview Secondary", "Lakeview SS", "Lakeview"],
           paypalEmail: opts.schoolEmail,
           publicKey: opts.schoolPublicKey,
           verified: true,
@@ -60,6 +61,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
         {
           id: "ins_riverbend",
           name: "Riverbend Academy",
+          aliases: ["Riverbend"],
           paypalEmail: "sb-riverbend@business.example.com",
           publicKey: null,
           verified: true,

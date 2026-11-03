@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay Brian's school fees at Lakeview, up to $400.50.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "School fees for Brian",
+      "beneficiary": "Brian",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Lakeview"
+    },
+    "capMinor": 40050,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

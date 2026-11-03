@@ -12,6 +12,7 @@ import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqli
 export const institutions = sqliteTable("institutions", {
   id: text("id").primaryKey(),                    // ins_lakeview
   name: text("name").notNull(),
+  aliases: text("aliases", { mode: "json" }).$type<string[]>().notNull().default([]), // exact-match alternates
   paypalEmail: text("paypal_email").notNull(),    // payout destination (sandbox business acct)
   publicKey: text("public_key"),                  // Ed25519 PEM/base64; null = legacy-only
   verified: integer("verified", { mode: "boolean" }).notNull().default(false),

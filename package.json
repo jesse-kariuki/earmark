@@ -14,10 +14,14 @@
     "paypal:smoke": "tsx --conditions=react-server scripts/paypal-smoke.ts",
     "db:reset": "tsx --conditions=react-server scripts/db-reset.ts",
     "db:generate": "drizzle-kit generate",
-    "keys": "tsx --conditions=react-server scripts/gen-keys.ts"
+    "keys": "tsx --conditions=react-server scripts/gen-keys.ts",
+    "eval:contracts:live": "tsx --conditions=react-server evals/contracts-live.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.96",
     "@base-ui/react": "^1.9.0",
+    "@paypal/react-paypal-js": "^10.6.1",
+    "ai": "^7.0.162",
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",

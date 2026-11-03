@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay rent for Mama Njeri's house, $250 max, to Greenhill Properties. I need to see the invoice and approve it first.",
+  "output": {
+    "purpose": {
+      "category": "rent",
+      "description": "House rent for Mama Njeri",
+      "beneficiary": "Mama Njeri",
+      "period": null
+    },
+    "payee": {
+      "institutionName": "Greenhill Properties"
+    },
+    "capMinor": 25000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_and_approval"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

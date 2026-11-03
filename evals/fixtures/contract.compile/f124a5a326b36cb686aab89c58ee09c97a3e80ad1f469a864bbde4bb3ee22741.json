@@ -1,0 +1,24 @@
+{
+  "stage": "contract.compile",
+  "input": "Cover Achieng's Term 1 fees at Lakeview Secondary, maximum 450 dollars, and ask me before paying anything over $300.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "Term 1 fees for Achieng",
+      "beneficiary": "Achieng",
+      "period": "Term 1"
+    },
+    "payee": {
+      "institutionName": "Lakeview Secondary"
+    },
+    "capMinor": 45000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": 30000,
+    "notes": []
+  },
+  "model": "hand-authored"
+}

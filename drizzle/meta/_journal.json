@@ -15,6 +15,13 @@
       "when": 1793688750182,
       "tag": "0001_events_append_only",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793696758373,
+      "tag": "0002_institution_aliases",
+      "breakpoints": true
     }
   ]
 }
