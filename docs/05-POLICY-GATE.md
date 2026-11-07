@@ -25,10 +25,11 @@ export interface GateContext {
     id; source: "signed" | "uploaded"; fileHash; invoiceNumber; amountMinor | null; currency | null;
     payeeName | null; payeeAccount | null; institutionId | null;
     extracted?: ExtractedInvoice; signatureValid?: boolean; lineItemsSumMinor?: number | null;
+    purposeText?: string | null;  // description + line-item labels; input to R10
     containsInstructions?: boolean; approvedBySender?: boolean;
   };
   registry: { byId: Record<string, { name; paypalEmail; verified; publicKey | null }> };
-  history: { fileHashes: Set<string>; invoiceNumbers: Set<string> /* `${institutionId}:${number}` */ };
+  history: { fileHashes: Set<string>; invoiceNumbers: Set<string> /* invoiceNumberKey(institutionId, number) */ };  // excludes this invoice
   proposal?: { amountMinor: number };           // set when called via proposePayment
 }
 
@@ -48,11 +49,11 @@ else `ALLOW`. Always evaluate **all** rules (the trace shows the full checklist)
 | R04_PAYEE_IS_CONTRACT_INSTITUTION | Payee is the contracted institution | `invoice.institutionId !== contract.payee.institutionId` (null counts as mismatch) → fail | Lookalike school |
 | R05_PAYOUT_ACCOUNT_MATCH | Payout account matches registry | `normalizeEmail(invoice.payeeAccount) !== registry[contract inst].paypalEmail` → fail | **Swapped payout account** |
 | R06_INSTITUTION_VERIFIED | Institution verified in registry | `!registry[id].verified` → fail | Unregistered payee |
-| R07_WITHIN_CAP | Amount within remaining cap | `amount > cap - captured` → fail | **Inflated amount** |
+| R07_WITHIN_CAP | Amount within remaining cap | `amount > cap - captured`, or amount missing, not a whole number, or ≤ 0 → fail | **Inflated amount** |
 | R08_CURRENCY_MATCH | Currency matches | `invoice.currency !== earmark.currency` → fail | Currency trick |
-| R09_NOT_DUPLICATE | Invoice not seen before | fileHash in history OR `${inst}:${number}` in history → fail | **Reused invoice** |
-| R10_PURPOSE_MATCH | Purpose matches contract | description/period keywords inconsistent with `contract.purpose` (deterministic keyword map per category + period string compare) → warn; clearly different category (e.g. "uniform shop", "transport") → fail | Wrong purpose |
-| R11_EVIDENCE_SATISFIED | Required evidence present | `signed_invoice` required but source=uploaded → fail; `invoice_and_approval` → warn until approved | Evidence downgrade |
+| R09_NOT_DUPLICATE | Invoice not seen before | fileHash in history OR `invoiceNumberKey(inst, number)` (ignores case and punctuation) in history → fail; no invoice number → warn | **Reused invoice** |
+| R10_PURPOSE_MATCH | Purpose matches contract | `invoice.purposeText` against a deterministic keyword map per category (strong / weak / foreign words) + period string compare. Foreign word and no strong word (e.g. "uniform shop", "transport") → fail; foreign + strong, no strong word ("fees" alone is not enough), non-ASCII letters, wrong period, empty text, or category `other` → warn. Reasons name matched keywords only, never the invoice text (money rule 4) | Wrong purpose |
+| R11_EVIDENCE_SATISFIED | Required evidence present | `signed_invoice` required but source=uploaded → fail; `invoice_and_approval`, or any upload → warn until approved | Evidence downgrade |
 | R12_SIGNATURE_VALID | School signature valid | source=signed and `!signatureValid` → fail; uploaded → skip | Forged connected invoice |
 | R13_NO_EMBEDDED_INSTRUCTIONS | No instructions hidden in invoice | `containsInstructions` → fail | **Prompt injection** |
 | R14_ARITHMETIC | Line items add up | `lineItemsSum !== amount` → fail (skip if no line items) | Doctored total |
@@ -60,9 +61,12 @@ else `ALLOW`. Always evaluate **all** rules (the trace shows the full checklist)
 | R16_APPROVAL_THRESHOLD | Below approval threshold | `amount ≥ approvalThresholdMinor` → warn | Large payments |
 | R17_PROPOSAL_MATCHES_INVOICE | Proposal equals invoice amount | `proposal.amountMinor !== invoice.amountMinor` → fail (skip if no proposal) | Agent tries to pay more/less |
 
-Legacy uploads always need human approval unless the contract explicitly allows otherwise — achieved by
-R11 (`invoice_and_approval` default for uploads) or R16. Keep that behaviour; it matches the pitch
-("legacy mode holds for human approval").
+Legacy uploads always need human approval, whatever the evidence level: R11 warns on any upload until
+`approvedBySender` is literally `true`. The contract has no opt-out field. Keep that behaviour; it matches the
+pitch ("legacy mode holds for human approval").
+
+Results reach the Guardian, so rules echo an invoice value only after a strict shape check (money rule 4).
+Comparisons fail closed: a NaN or missing cap, threshold or floor must never read as a pass.
 
 Implementation: `src/lib/policy/rules.ts` exports `RULES: Rule[]` where
 `type Rule = { id: RuleId; title: string; check(ctx): Omit<RuleResult,"ruleId"|"title"> }`.
@@ -82,14 +86,18 @@ never ALLOW when `amount > cap - captured`.
 ## 4. Capability tickets (`src/lib/policy/tickets.ts`)
 
 ```ts
-issueTicket(ctx, gateResult): Ticket          // only if verdict === "ALLOW"; throws otherwise
+issueTicket(db, ctx): Ticket                  // runs evaluate() itself; throws unless ALLOW
 // fields: id, earmarkId, invoiceId, amountMinor, currency, payeeEmail (from REGISTRY, not invoice), expiresAt = now+5min
 // mac = HMAC-SHA256(env.TICKET_SECRET, canonicalJson(fields))
 
-redeemTicket(ticketId, now): Ticket           // in orchestrator, inside a DB transaction:
-//  - row exists, mac recomputes, not expired, redeemedAt null
-//  - re-runs gate.evaluate() with fresh context (TOCTOU guard: frozen/expired/duplicate since issue)
-//  - sets redeemedAt; inserts payment with ticketId (unique) → second redeem fails on constraint
+redeemTicket(db, ticketId, now, loadContext): Result<{ ticket, paymentId }>   // in orchestrator, one DB transaction:
+//  - row exists, mac recomputes, redeemedAt null, not expired
+//  - Earmark facts come from the row; loadContext(tx, ticket) supplies invoice, registry, history. Registry email
+//    and currency must still equal the ticket's
+//  - re-runs gate.evaluate() with proposal = ticket amount (TOCTOU guard: frozen/expired/duplicate/amount since issue)
+//  - invoice has no payment yet; sets redeemedAt; Earmark → `paying`; inserts pending payment with ticketId (unique)
+// A refusal is a Result, spends nothing, and a gate refusal appends policy.evaluated. `paying` is what stops a second
+// ticket spending the same cap, because capturedMinor only rises after the capture.
 ```
 Tests: tampered amount → mac mismatch; expired; double redeem; freeze between issue and redeem → blocked.
 

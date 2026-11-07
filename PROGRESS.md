@@ -4,13 +4,13 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M2 — Compose, contract, authorize** (code done; 2 human items) → next **M3 — Policy gate & tickets** · M0 open item: Render deploy
+**M3 — Policy gate & tickets** done → next **M4 — Legacy invoice intake + eval set** · open human items: M0 Render deploy, M2 live contract recording + sandbox Buttons run
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
 - [x] M1 Data, money, event chain — Nov 3
 - [ ] M2 Compose, contract, authorize — Nov 3 · all code + tests done; waiting on human: live contract recording (`pnpm eval:contracts:live`, needs ANTHROPIC_API_KEY) and one sandbox PayPal Buttons run
-- [ ] M3 Policy gate & tickets — Nov 4
+- [x] M3 Policy gate & tickets — Nov 7 (planned Nov 4)
 - [ ] M4 Legacy invoice intake + eval set — Nov 4
 - [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5
 - [ ] M6 Connected institution mode — Nov 6
@@ -32,7 +32,7 @@
 | Agent Toolkit version + read tool names | ✅ | `@paypal/agent-toolkit` 1.11.0. Read tools: `get_order` (`orders: { get: true }`), `list_transactions` (`transactions: { list: true }`). No payouts tool → Payouts stays on REST |
 
 ## Numbers for the README / video
-- Tests: 154 passing (M2) + 5 Playwright · events + money + contract coverage: 100% · policy coverage: —% (rules arrive in M3)
+- Tests: 305 passing (M3) + 5 Playwright · events + money + contract + policy coverage: 100%
 - Evals (fixture): —/12 invoices, 10/10 contracts (hand-authored fixtures until a live run is recorded)
 - Evals (live, model —): —/12, —/10
 - Attack Lab: —/5 blocked
@@ -59,6 +59,21 @@
 - 2026-11-03 · Route handlers read the AI-mode cookie from the Request (not `next/headers`) · keeps handlers callable from Vitest.
 - 2026-11-03 · The 10 contract fixtures are hand-authored drafts · they prove the code path, not the model. A live run (`pnpm eval:contracts:live`) records real outputs that fixture mode then prefers.
 - 2026-11-03 · `pnpm db:reset` and `pnpm keys` run via `tsx` (a devDependency) · Render's default install includes devDeps; revisit if the build sets `NODE_ENV=production` before install.
+- 2026-11-07 · Working copy lost root files, `src/`, `tests/`, `scripts/`, the contents of `node_modules` and `.env` (cause unknown) · no work lost: disk artifacts predate HEAD and `git fsck` found nothing dangling. Restored the deleted paths from HEAD, reinstalled, baseline 154 tests green. `.env` is gitignored, so it must be recreated. The repo has no remote.
+- 2026-11-07 · R11 warns on EVERY upload until approved, with no contract opt-out · compile defaults to `invoice_any`, so doc 05's "default for uploads" never happened and uploads reached ALLOW with no human. Doc 05 updated.
+- 2026-11-07 · R09 warns when there is no invoice number, and compares `invoiceNumberKey()` (ignores case and punctuation) · a re-saved upload has a new hash, so a null or respelled number could otherwise pay twice. Doc 05 updated.
+- 2026-11-07 · R07 also fails amounts that are missing, ≤ 0 or not whole, and a remaining cap that is not a safe integer · the spec's `amount > remaining` passes negatives and NaN. Comparisons across the gate fail closed; flags must be literally `true`. Doc 05 updated.
+- 2026-11-07 · R10 reads a new `invoice.purposeText`; a weak word such as "fees" alone warns, and so do non-ASCII letters · "school" and "term" are not purpose words, or eval 10 would pass. Clean fixtures and the demo invoice must name a strong word (tuition, boarding, "school fees"…) and the full contract period. Doc 05 updated.
+- 2026-11-07 · Rule results echo invoice values only after a strict shape check · they reach the Guardian, so free text there would break money rule 4.
+- 2026-11-07 · `issueTicket(db, ctx)` runs the gate itself, and `redeemTicket` reads Earmark facts from the row; `loadContext` supplies only invoice, registry and history · neither trusts a caller's verdict or stale state. Redeem moves the Earmark to `paying`, which is what stops two tickets spending one cap. Doc 05 updated.
+- 2026-11-07 · `render.yaml` generates `TICKET_SECRET` · `src/lib/env.ts` still has a public default, because refusing it under NODE_ENV=production would break `next build` on a fresh clone. M11 secret scan must confirm it is set.
+- 2026-11-07 · Vitest compiles JSX itself (`esbuild.jsx: automatic`) and includes `*.test.tsx` · tsconfig's `jsx: preserve` is for Next. RuleChecklist is tested with `renderToStaticMarkup`.
+
+### Handoff from the M3 money review
+- M4: `history` must exclude the current invoice and use `invoiceNumberKey`. Set `approvedBySender` with `row.approvedBy === "sender"`, never truthiness. `loadContext` must confirm the invoice row belongs to `ticket.earmarkId` (GateContext has no invoice earmark id). Build `purposeText` from description + line labels. Give `ExtractedInvoice` strings a `.max()`.
+- M5: pay `Redemption.ticket.payeeEmail` (`payments` stores no payee). A crash after redeem leaves the Earmark in `paying` and `redeemTicket` cannot re-run, so execute needs a resume path. Each gate refusal appends an event, so rate-limit the route. TAMPERED/EXPIRED/STALE refusals currently leave no event.
+- OPEN (human decision): no rule ties an invoice to the contract's beneficiary, so a genuine Lakeview invoice for another student passes on Brian's Earmark. Signed invoices carry `earmarkRef` and `studentName`; uploads carry `studentName`.
+- Not fixed: lookalike invoice numbers (`LSS-2027-OO1`); uploads are still human-approved, signed ones are signature-bound.
 
 ## Session log
 <!-- 2026-11-02 · M0 · what was done · what's next -->
@@ -67,3 +82,4 @@
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.
 - 2026-11-03 · M1 · Drizzle schema + migrations (incl. append-only triggers), `createDb`/`getDb`, seed-on-boot via `instrumentation.ts`, seed (3 institutions, 9 earmarks, 115 events, all chains verify), `db:reset`/`keys`, money helpers, canonical/chain/append + parity test, test helpers. 100 tests green; `next build` + boot seed verified. · Next: M2.
 - 2026-11-03 · M2 · `lib/ai/call.ts` (fixture/recorded/live + record + trace.step), contract draft/compile/registry, 10 contract evals (fixture 10/10), API routes (compile, create, approve, order, authorize, detail, events, freeze, ai-mode), orchestrator authorize, header (persona switcher, AI toggle), MoneyBar/StatusChip/ContractPanel/EventTimeline, `/compose`, `/earmarks/[id]`, PayPal Buttons (sandbox) + mock hold. 154 tests + 5 e2e green. · Human: ANTHROPIC_API_KEY → `pnpm eval:contracts:live`; try the sandbox Buttons once. Next: M3.
+- 2026-11-07 · M3 · Recovered the working copy again (see Decisions). `policy/rules.ts` (R01–R17), `gate.ts`, `tickets.ts`, `crypto/hmac.ts`, `invoice/schema.ts`, `RuleChecklist`, guardrail: only the orchestrator redeems, only tickets.ts writes payments. money-reviewer found real holes behind 100% coverage (uploads reaching ALLOW, R09 bypass, stale-context cap double-spend, invoice text in reasons, NaN passing); all fixed with tests, and the fixes were not re-reviewed by the agent. 305 tests + 5 e2e green, policy 100%. `pnpm eval` does not exist until M4. · Next: M4. Human: recreate `.env`, add a private git remote, decide the beneficiary check.
