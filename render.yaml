@@ -15,4 +15,6 @@ services:
         value: fixture
       - key: JUDGE_MODE
         value: "true"
+      - key: TICKET_SECRET   # never fall back to the public default in src/lib/env.ts
+        generateValue: true
       - fromGroup: earmark-secrets
