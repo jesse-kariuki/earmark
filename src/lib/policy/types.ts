@@ -1,5 +1,7 @@
-// Policy result types (docs/05-POLICY-GATE.md §1). Rule ids are frozen: UI, trace, Attack Lab and evals key off them.
-// Added in M1 so invoices.reasons is typed; M3 adds GateContext/GateResult and the rules.
+// Policy types (docs/05-POLICY-GATE.md §1). Rule ids are frozen: UI, trace, Attack Lab and evals key off them.
+import type { IntentContract } from "@/lib/contract/schema";
+import type { EarmarkStatus } from "@/lib/db/schema";
+import type { ExtractedInvoice } from "@/lib/invoice/schema";
 
 export type Verdict = "ALLOW" | "BLOCK" | "REQUIRE_APPROVAL";
 export type RuleStatus = "pass" | "fail" | "warn" | "skip";
@@ -32,4 +34,62 @@ export interface RuleResult {
   reason: string; // plain English, includes the compared values
   expected?: string;
   actual?: string;
+}
+
+export interface RegistryEntry {
+  name: string;
+  paypalEmail: string;
+  verified: boolean;
+  publicKey: string | null;
+}
+
+/** Everything the gate may look at. Built by the caller: the gate does no I/O and reads no clock. */
+export interface GateContext {
+  now: number; // ms epoch, injected
+  earmark: {
+    id: string;
+    status: EarmarkStatus;
+    frozen: boolean;
+    capMinor: number;
+    capturedMinor: number;
+    currency: string;
+    expiresAt: number; // ms epoch
+    contract: IntentContract;
+  };
+  invoice: {
+    id: string;
+    source: "signed" | "uploaded";
+    fileHash: string;
+    invoiceNumber: string | null;
+    amountMinor: number | null;
+    currency: string | null;
+    payeeName: string | null;
+    payeeAccount: string | null; // as printed / signed; only ever compared, never paid
+    institutionId: string | null;
+    extracted?: ExtractedInvoice;
+    signatureValid?: boolean;
+    lineItemsSumMinor?: number | null;
+    /** Description plus line-item labels, from the extractor or the signed payload. Input to R10. */
+    purposeText?: string | null;
+    containsInstructions?: boolean;
+    approvedBySender?: boolean;
+  };
+  registry: { byId: Record<string, RegistryEntry> };
+  /** Other invoices already seen. Must not include this invoice, or re-gating at redemption blocks itself. */
+  history: { fileHashes: Set<string>; invoiceNumbers: Set<string> /* `${institutionId}:${number}` */ };
+  proposal?: { amountMinor: number }; // set when called via proposePayment
+}
+
+export interface GateResult {
+  verdict: Verdict;
+  results: RuleResult[];
+  firstBlocking?: RuleId;
+}
+
+export type RuleOutcome = Omit<RuleResult, "ruleId" | "title">;
+
+export interface Rule {
+  id: RuleId;
+  title: string;
+  check(ctx: GateContext): RuleOutcome;
 }
