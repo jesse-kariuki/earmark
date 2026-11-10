@@ -48,15 +48,14 @@ export function getCookie(req: Request, name: string): string | undefined {
 }
 
 const WINDOW_MS = 60_000;
-const LIMIT = 30;
 const buckets = new Map<string, { tokens: number; refilledAt: number }>();
 
-/** 30 writes/min per IP. Only enforced in production so tests and local dev are never throttled. */
+/** RATE_LIMIT_PER_MIN writes/min per IP (default 30). Only enforced in production so tests and local dev are never throttled. */
 export function rateLimit(req: Request, now = Date.now()): AppError | null {
   if (env.NODE_ENV !== "production") return null;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  const b = buckets.get(ip) ?? { tokens: LIMIT, refilledAt: now };
-  b.tokens = Math.min(LIMIT, b.tokens + ((now - b.refilledAt) / WINDOW_MS) * LIMIT);
+  const b = buckets.get(ip) ?? { tokens: env.RATE_LIMIT_PER_MIN, refilledAt: now };
+  b.tokens = Math.min(env.RATE_LIMIT_PER_MIN, b.tokens + ((now - b.refilledAt) / WINDOW_MS) * env.RATE_LIMIT_PER_MIN);
   b.refilledAt = now;
   if (b.tokens < 1) {
     buckets.set(ip, b);

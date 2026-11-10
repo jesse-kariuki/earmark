@@ -15,6 +15,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
     // Separate DB so e2e never touches the dev data; ANTHROPIC_API_KEY blank so nothing calls a live model.
-    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture", DATABASE_PATH: ".data/e2e.db", ANTHROPIC_API_KEY: "" },
+    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture", DATABASE_PATH: ".data/e2e.db", ANTHROPIC_API_KEY: "", RATE_LIMIT_PER_MIN: "100000" },
   },
 });

@@ -26,16 +26,18 @@ export function issueInvoice(db: Db, input: IssueInvoiceInput, keys: { privateKe
   const earmark = db.select().from(earmarks).where(eq(earmarks.id, input.earmarkRef)).get();
   if (!earmark) return err({ code: "NOT_FOUND", message: `No Earmark with reference ${input.earmarkRef}.` });
 
+  // Count-based numbers collide when two invoices are issued at once, so the clock breaks ties.
   const issued = db
     .select({ id: invoices.id })
     .from(invoices)
     .where(and(eq(invoices.institutionId, school.id), eq(invoices.source, "signed")))
     .all().length;
+  const suffix = (now % 46656).toString(36).toUpperCase().padStart(3, "0");
   const totalMinor = input.lineItems.reduce((s, li) => s + li.amountMinor, 0);
   const payload: SignedInvoicePayload = {
     v: 1,
     institutionId: school.id,
-    invoiceNumber: `LSS-T1-${String(1001 + issued)}`,
+    invoiceNumber: `LSS-T1-${String(1001 + issued)}-${suffix}`,
     earmarkRef: earmark.id,
     studentName: input.studentName ?? earmark.recipientName,
     description: input.description ?? `${earmark.contract.purpose.period ?? "Term"} school fees`,

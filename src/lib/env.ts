@@ -31,6 +31,7 @@ export const envSchema = z
     ANTHROPIC_MODEL: optionalString,
     AI_RECORD: bool.default(false),
     LIVE_AI_DAILY_BUDGET: z.coerce.number().int().nonnegative().default(200),
+    RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(30),
 
     TICKET_SECRET: z.string().min(16).default("change-me-32-bytes-hex"),
     DEMO_RESET_TOKEN: z.string().min(1).default("change-me"),
