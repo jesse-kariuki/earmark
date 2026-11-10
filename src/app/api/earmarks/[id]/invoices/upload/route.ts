@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { AI_MODE_COOKIE, aiRuntime, resolveAiMode } from "@/lib/ai/runtime";
 import { getDb } from "@/lib/db";
+import { guardAndPay } from "@/lib/flows/pay";
 import { errorJson, getCookie, okJson, parseBody, rateLimit } from "@/lib/http/respond";
 import { intakeUpload } from "@/lib/invoice/intake";
 import { loadSample } from "@/lib/invoice/samples";
@@ -33,9 +34,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ({ bytes, mime } = sample);
   }
 
-  const ai = aiRuntime(resolveAiMode(getCookie(req, AI_MODE_COOKIE)));
+  const mode = resolveAiMode(getCookie(req, AI_MODE_COOKIE));
+  const ai = aiRuntime(mode);
   const r = await intakeUpload(getDb(), { earmarkId: id, bytes, mime }, { ai, now: Date.now(), uploadsDir: join(process.cwd(), ".data", "uploads") });
   if (!r.ok) return errorJson(r.error);
   const { invoiceId, stored, gate } = r.value;
-  return okJson({ invoiceId, stored, verdict: gate.verdict, firstBlocking: gate.firstBlocking ?? null, results: gate.results }, 201);
+  // A blocked invoice is final. Anything else goes to the Guardian (for an upload: it asks the sender to approve).
+  const paid = stored && gate.verdict !== "BLOCK" ? await guardAndPay(invoiceId, mode) : null;
+  return okJson({ invoiceId, stored, verdict: gate.verdict, firstBlocking: gate.firstBlocking ?? null, results: gate.results, guardian: paid?.guardian ?? null }, 201);
 }

@@ -38,7 +38,12 @@ export type MockPayPal = PayPalClient & {
   inspect(): { orders: Order[]; authorizations: Authorization[]; payouts: Payout[] };
 };
 
-export function createMockPayPal(opts: { now?: () => Date; trace?: PayPalTracer } = {}): MockPayPal {
+/** A hold the app recorded but this process has never seen (seeded data, or a dev-server restart wiped the memory). */
+export type KnownHold = { amountMinor: number; currency: string };
+
+export function createMockPayPal(
+  opts: { now?: () => Date; trace?: PayPalTracer; resolveAuthorization?: (authId: string) => KnownHold | null } = {},
+): MockPayPal {
   const now = opts.now ?? (() => new Date());
   const trace = opts.trace ?? (() => {});
 
@@ -85,7 +90,15 @@ export function createMockPayPal(opts: { now?: () => Date; trace?: PayPalTracer 
   }
 
   function getAuth(id: string): Authorization {
-    const a = auths.get(id);
+    let a = auths.get(id);
+    if (!a) {
+      // Adopt a hold the app's DB knows about, as if this mock had issued it. Unknown ids still 404.
+      const known = opts.resolveAuthorization?.(id);
+      if (known) {
+        a = { id, orderId: `ORDER-ADOPTED-${id}`, ...known, capturedMinor: 0, status: "CREATED", expirationTime: new Date(now().getTime() + HONOR_PERIOD_MS).toISOString() };
+        auths.set(id, a);
+      }
+    }
     if (!a) fail("RESOURCE_NOT_FOUND", `Authorization ${id} not found`, 404);
     return a;
   }
@@ -202,6 +215,11 @@ export function createMockPayPal(opts: { now?: () => Date; trace?: PayPalTracer 
         });
         return { batchId, batchStatus: "PENDING" };
       });
+    },
+
+    /** Mock webhooks are "signed" with the literal transmission signature `mock-valid`. */
+    async verifyWebhookSignature({ headers }) {
+      return headers.transmissionSig === "mock-valid";
     },
 
     async getPayoutBatch(batchId): Promise<PayoutBatch> {

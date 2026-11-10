@@ -234,6 +234,21 @@ export function createSandboxPayPal(opts: SandboxOptions): SandboxPayPal {
       return { batchId: r.batch_header.payout_batch_id, batchStatus: r.batch_header.batch_status };
     },
 
+    async verifyWebhookSignature({ webhookId, headers, event }) {
+      const r = await call("POST", "/v1/notifications/verify-webhook-signature", z.object({ verification_status: z.string() }), {
+        body: {
+          auth_algo: headers.authAlgo,
+          cert_url: headers.certUrl,
+          transmission_id: headers.transmissionId,
+          transmission_sig: headers.transmissionSig,
+          transmission_time: headers.transmissionTime,
+          webhook_id: webhookId,
+          webhook_event: event,
+        },
+      });
+      return r.verification_status === "SUCCESS";
+    },
+
     async getPayoutBatch(batchId) {
       const r = await call("GET", `/v1/payments/payouts/${encodeURIComponent(batchId)}`, payoutBatchSchema);
       return {

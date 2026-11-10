@@ -26,9 +26,17 @@ describe("payment write paths", () => {
     expect(offenders.map((f) => f.path)).toEqual([]);
   });
 
-  it("only lib/policy/tickets.ts inserts payments or marks tickets redeemed", () => {
+  it("only lib/policy/tickets.ts inserts payments or tickets, or marks tickets redeemed", () => {
     const allowed = ["src/lib/policy/tickets.ts", "src/lib/db/seed.ts"];
-    const offenders = files.filter((f) => !allowed.includes(f.path) && /\.(insert|update)\(\s*(payments|tickets)\b/.test(f.code));
+    const offenders = files.filter((f) => !allowed.includes(f.path) && /\.(insert\(\s*(payments|tickets)|update\(\s*tickets)\b/.test(f.code));
+    expect(offenders.map((f) => f.path)).toEqual([]);
+  });
+
+  it("only lib/orchestrator advances a payment's status (capture → payout → confirmed)", () => {
+    const allowed = ["src/lib/policy/tickets.ts", "src/lib/db/seed.ts"];
+    const offenders = files.filter(
+      (f) => !allowed.includes(f.path) && !f.path.startsWith("src/lib/orchestrator/") && /\.update\(\s*payments\b/.test(f.code),
+    );
     expect(offenders.map((f) => f.path)).toEqual([]);
   });
 });

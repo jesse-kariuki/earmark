@@ -4,9 +4,9 @@ import "server-only";
 import { and, eq, ne } from "drizzle-orm";
 import type { RegistryEntry as ResolveEntry } from "@/lib/contract/registry";
 import type { Db, Tx } from "@/lib/db/client";
-import { type Invoice, institutions, invoices } from "@/lib/db/schema";
+import { earmarks, type Invoice, institutions, invoices } from "@/lib/db/schema";
 import { invoiceNumberKey } from "@/lib/policy/rules";
-import type { RedemptionContext } from "@/lib/policy/tickets";
+import { gateEarmark, type RedemptionContext } from "@/lib/policy/tickets";
 import type { GateContext } from "@/lib/policy/types";
 import { crosscheck } from "./crosscheck";
 import { ExtractedInvoice } from "./schema";
@@ -65,4 +65,20 @@ export function loadRedemptionContext(tx: Tx, invoiceId: string, earmarkId: stri
   if (!row) throw new Error(`loadRedemptionContext: invoice ${invoiceId} is not on earmark ${earmarkId}`);
   const registry = registrySnapshot(tx);
   return { invoice: gateInvoiceFromRow(row, registry.resolve), registry: registry.gate, history: historyExcluding(tx, invoiceId) };
+}
+
+/** The whole gate context for a stored invoice as things stand now (for proposals and re-checks). */
+export function invoiceGateContext(db: Reader, invoiceId: string, now: number, proposal?: { amountMinor: number }): GateContext | null {
+  const row = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
+  if (!row) return null;
+  const earmark = db.select().from(earmarks).where(eq(earmarks.id, row.earmarkId)).get()!;
+  const registry = registrySnapshot(db);
+  return {
+    now,
+    earmark: gateEarmark(earmark),
+    invoice: gateInvoiceFromRow(row, registry.resolve),
+    registry: registry.gate,
+    history: historyExcluding(db, invoiceId),
+    ...(proposal ? { proposal } : {}),
+  };
 }

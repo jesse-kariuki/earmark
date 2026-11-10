@@ -42,7 +42,15 @@ export interface PayPalClient {
   voidAuthorization(authId: string, requestId: string): Promise<{ status: string }>;
   createPayout(i: PayoutInput, requestId: string): Promise<{ batchId: string; batchStatus: string }>;
   getPayoutBatch(batchId: string): Promise<PayoutBatch>;
+  /** POST /v1/notifications/verify-webhook-signature (docs/03 §3.5). Moves no money. */
+  verifyWebhookSignature(i: WebhookVerification): Promise<boolean>;
 }
+
+export type WebhookVerification = {
+  webhookId: string;
+  headers: { authAlgo: string; certUrl: string; transmissionId: string; transmissionSig: string; transmissionTime: string };
+  event: unknown;
+};
 
 /** One line per PayPal HTTP call. Never contains secrets or tokens. M5 turns these into `trace.step` events. */
 export type PayPalTraceEntry = {

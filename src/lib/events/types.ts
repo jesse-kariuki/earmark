@@ -16,6 +16,7 @@ export const EVENT_TYPES = [
   "ticket.issued",
   "ticket.redeemed",
   "paypal.captured",
+  "paypal.capture_failed",
   "paypal.payout_sent",
   "paypal.payout_succeeded",
   "paypal.payout_failed",

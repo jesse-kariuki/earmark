@@ -137,3 +137,13 @@ describe("mock PayPal", () => {
     expect((await holdOf(pp, 100)).authorizationId).toBe("AUTH-MOCK-000002");
   });
 });
+
+describe("adopting holds the app recorded", () => {
+  it("captures against a known hold it never issued, and still 404s an unknown one", async () => {
+    const pp = createMockPayPal({ resolveAuthorization: (id) => (id === "AUTH-SEED-0001" ? { amountMinor: 40000, currency: "USD" } : null) });
+    const cap = await pp.captureAuthorization({ authorizationId: "AUTH-SEED-0001", amountMinor: 35000, currency: "USD", invoiceId: "inv_1", finalCapture: true }, "pay_1:capture");
+    expect(cap.status).toBe("COMPLETED");
+    expect(pp.inspect().authorizations[0]).toMatchObject({ id: "AUTH-SEED-0001", status: "CAPTURED", capturedMinor: 35000 });
+    await expect(pp.getAuthorization("AUTH-NOPE")).rejects.toMatchObject({ name: "RESOURCE_NOT_FOUND" });
+  });
+});
