@@ -32,8 +32,8 @@ export default async function RootLayout({
 }>) {
   const aiMode = resolveAiMode((await cookies()).get(AI_MODE_COOKIE)?.value);
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="antialiased">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="font-semibold tracking-tight">

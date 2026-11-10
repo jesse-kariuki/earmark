@@ -13,7 +13,7 @@ test("compose → compile → approve → hold (mock) → held Earmark", async (
 
   await page.waitForURL(/\/earmarks\/em_/);
   await expect(page.getByText("Held", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Money held at PayPal")).toBeVisible();
+  await expect(page.getByText("$400.00 is held at PayPal, not sent.")).toBeVisible();
 
   const id = page.url().split("/earmarks/")[1]!;
   const detail = await (await request.get(`/api/earmarks/${id}`)).json();

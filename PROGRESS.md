@@ -4,7 +4,7 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M9 — Attack Lab, pause, guardrails** done → next **M10 — Design pass, README** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
+**M10 — Design pass, README** done (except the friend test) → next **M11 — Hardening & first take** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
@@ -17,7 +17,7 @@
 - [x] M7 Proof Receipt & recipient view — Nov 10 (planned Nov 6)
 - [x] M8 Ledger & trace polish — Nov 10 (planned Nov 7)
 - [x] M9 Attack Lab, pause, guardrails — Nov 10 (planned Nov 8) · CI workflow written; it runs once the repo has a GitHub remote
-- [ ] M10 Design pass, README — Nov 9 (FREEZE)
+- [ ] M10 Design pass, README — Nov 10 · done except the acceptance check only a human can do: a friend runs sender → school → recipient → receipt → lab unaided
 - [ ] M11 Hardening & first take — Nov 10
 - [ ] M12 Submit — Nov 11
 
@@ -104,6 +104,7 @@
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.
 - 2026-11-03 · M1 · Drizzle schema + migrations (incl. append-only triggers), `createDb`/`getDb`, seed-on-boot via `instrumentation.ts`, seed (3 institutions, 9 earmarks, 115 events, all chains verify), `db:reset`/`keys`, money helpers, canonical/chain/append + parity test, test helpers. 100 tests green; `next build` + boot seed verified. · Next: M2.
 - 2026-11-03 · M2 · `lib/ai/call.ts` (fixture/recorded/live + record + trace.step), contract draft/compile/registry, 10 contract evals (fixture 10/10), API routes (compile, create, approve, order, authorize, detail, events, freeze, ai-mode), orchestrator authorize, header (persona switcher, AI toggle), MoneyBar/StatusChip/ContractPanel/EventTimeline, `/compose`, `/earmarks/[id]`, PayPal Buttons (sandbox) + mock hold. 154 tests + 5 e2e green. · Human: ANTHROPIC_API_KEY → `pnpm eval:contracts:live`; try the sandbox Buttons once. Next: M3.
+- 2026-11-10 · M10 · Guided home page (5-step demo path), timeline in plain language, Geist font vars moved to `<html>` (the serif fallback persisted), global loading/error/not-found, README filled (screenshots in `docs/screenshots/`, Mermaid architecture inline instead of an exported PNG), MIT `LICENSE` restored (lost in a wipe). `e2e/zz-screens.spec.ts` regenerates screenshots with `SCREENS=1`.
 - 2026-11-10 · M9 · `lib/attacks/scenarios.ts` (5 required + 2 bonus: forged signature R12, agent overpay R17), `POST /api/lab/:scenario`, `/lab` with Run all, result cards and per-run trace, eval badge. Full e2e suite (12) green in parallel after making the rate limit configurable (`RATE_LIMIT_PER_MIN`) and time-suffixing Registrar invoice numbers (parallel issues collided on R09). `.github/workflows/ci.yml` added.
 - 2026-11-10 · M8 · AG Grid Community 33.3.2 ledger (`/ledger`, `GET /api/earmarks`): summary cards, quick filter, column filters, sort, external "Blocked attempts" filter, side detail panel (invoices + first failing rule, payments, links) → Open trace. TraceDrawer gains `hideTrigger`/`onClose`. Fixed a self-referencing `--font-sans` that made every page fall back to serif. Ledger e2e green.
 - 2026-11-10 · M7 · `/receipt/[id]` (WebCrypto verification in the browser, expected-vs-got on the broken event, copy link, judge-mode tamper button), `lib/admin/{tamper,reset}.ts` + routes, header Reset (judge mode), `explain.ts` (guard on amounts / emails / institutions, EN + SW template fallback), `/r/[id]` mobile card + confirm, `recipient.notified` once. e2e: verified → tamper → broken at the capture event; 360px recipient check.
