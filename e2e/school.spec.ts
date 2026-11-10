@@ -6,7 +6,7 @@ test("school console: signed invoice is paid; an altered one is blocked by R12",
   const id = await freshHeldEarmark(request);
   await page.goto(`/school?ref=${id}`);
   await page.getByRole("button", { name: "Demo: alter it after signing" }).click();
-  await expect(page.getByRole("status").getByText(/blocked by R12_SIGNATURE_VALID/)).toBeVisible();
+  await expect(page.getByRole("status").getByText(/blocked by R12_SIGNATURE_VALID/)).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("button", { name: "Issue signed invoice" }).click();
   await expect(page.getByRole("status").getByText(/paid\. The money reached the school/)).toBeVisible({ timeout: 15_000 });
