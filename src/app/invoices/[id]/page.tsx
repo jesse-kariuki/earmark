@@ -4,12 +4,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RuleChecklist } from "@/components/RuleChecklist";
 import { invoiceChip, StatusChip } from "@/components/StatusChip";
+import { TraceDrawer } from "@/components/TraceDrawer";
 import { getDb } from "@/lib/db";
 import { earmarks, payments } from "@/lib/db/schema";
+import { getEvents } from "@/lib/events/append";
+import { describeEvent } from "@/lib/events/describe";
 import { findInvoice } from "@/lib/invoice/intake";
 import { ExtractedInvoice } from "@/lib/invoice/schema";
 import { formatMoney } from "@/lib/money";
 import type { GateResult } from "@/lib/policy/types";
+import { AskGuardian } from "./AskGuardian";
 import { ReviewActions } from "./ReviewActions";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +67,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <h1 className="text-2xl font-semibold tracking-tight">Invoice {inv.invoiceNumber ?? ""}</h1>
         <StatusChip kind={invoiceChip({ ...inv, paid: payment?.status === "paid_out" })} />
         <span className="text-sm text-muted-foreground">{inv.source === "signed" ? "Signed by the school" : "Uploaded · read by an AI with no tools"}</span>
+        <span className="ml-auto">
+          <TraceDrawer lines={getEvents(db, earmark.id).map(describeEvent)} />
+        </span>
       </div>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
@@ -139,6 +146,24 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
           )}
           {verdict === "REQUIRE_APPROVAL" && inv.approvedBy === null && <ReviewActions invoiceId={inv.id} />}
+          {payment && (
+            <div className={`rounded-xl border p-4 text-sm ${payment.status === "failed" ? "border-red-300 bg-red-50" : "border-teal-300 bg-teal-50"}`}>
+              <p className="font-medium">
+                {payment.status === "paid_out" && payment.payoutItemId && `Paid · ${formatMoney(payment.amountMinor, payment.currency)} reached the school`}
+                {payment.status === "paid_out" && !payment.payoutItemId && `Payout sent · ${formatMoney(payment.amountMinor, payment.currency)}, waiting for PayPal to confirm`}
+                {payment.status === "captured" && `Captured ${formatMoney(payment.amountMinor, payment.currency)} · paying the school`}
+                {payment.status === "pending" && "Paying…"}
+                {payment.status === "failed" && "The payment did not complete"}
+              </p>
+              <p className="mt-1 font-mono text-xs text-zinc-600">
+                {payment.id}
+                {payment.captureId && ` · capture ${payment.captureId}`}
+                {payment.payoutBatchId && ` · payout ${payment.payoutBatchId}`}
+              </p>
+              {payment.error && <p className="mt-1 text-red-800">{payment.error}</p>}
+            </div>
+          )}
+          {verdict === "ALLOW" && !payment && <AskGuardian invoiceId={inv.id} />}
           <RuleChecklist result={gate} />
         </section>
       </div>

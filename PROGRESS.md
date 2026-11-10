@@ -4,7 +4,7 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M4 — Legacy invoice intake + eval set** code done → next **M5 — Orchestrator, Guardian, webhooks** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
+**M5 — Orchestrator, Guardian, webhooks** done in mock → next **M6 — Connected institution mode** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
@@ -12,7 +12,7 @@
 - [ ] M2 Compose, contract, authorize — Nov 3 · all code + tests done; waiting on human: live contract recording (`pnpm eval:contracts:live`, needs ANTHROPIC_API_KEY) and one sandbox PayPal Buttons run
 - [x] M3 Policy gate & tickets — Nov 7 (planned Nov 4)
 - [ ] M4 Legacy invoice intake + eval set — Nov 4 · all code + tests done (fixture 12/12, UI R05 e2e); waiting on human: live extractor run (`AI_RECORD=1 pnpm eval:live`, needs ANTHROPIC_API_KEY + ANTHROPIC_MODEL)
-- [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5
+- [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5 · mock slice + all integration tests done; waiting on human: sandbox happy path (needs `.env` with PayPal sandbox keys) and webhook registration on the Render URL
 - [ ] M6 Connected institution mode — Nov 6
 - [ ] M7 Proof Receipt & recipient view — Nov 6
 - [ ] M8 Ledger & trace polish — Nov 7
@@ -75,6 +75,13 @@
 - 2026-11-10 · An upload that fails R09 is not stored (both unique indexes would refuse it); its events say `stored: false`. Every other upload is stored, including blocked ones · a blocked invoice still claims its number, so a later genuine invoice with the same number is R09 (known limitation).
 - 2026-11-10 · Upload route also takes JSON `{ sample: "05" }` · the demo needs the 12 synthetic invoices in fixture mode; the bytes go through the same pipeline. Doc 06 updated.
 
+- 2026-11-10 · New event type `paypal.capture_failed` · doc 03 §5 wants an event on capture failure and none fit. Doc 02 updated.
+- 2026-11-10 · Fixture-mode Guardian is scripted (same tools, fixed order) and labelled `scripted` in the trace · fixture mode makes no model calls. Doc 04 updated.
+- 2026-11-10 · PayPal Agent Toolkit tools are wrapped, not passed through · it is built for AI SDK v4 (`parameters`); we use v7 (`inputSchema`). Doc 04 updated.
+- 2026-11-10 · The mock PayPal adopts holds our DB recorded · seeded and pre-restart Earmarks could not be captured otherwise (M3 handoff item).
+- 2026-11-10 · Payment status updates are allowed in `lib/orchestrator`; the guardrail now forbids only payment/ticket inserts and ticket updates outside `tickets.ts` · the orchestrator has to record capture/payout progress.
+- 2026-11-10 · e2e deletes `.data/e2e.db` before booting its server (`scripts/rm-db.mjs`) · reruns hit R09 on the previous run's sample invoice.
+
 ### Handoff from the M3 money review
 - M4: `history` must exclude the current invoice and use `invoiceNumberKey`. Set `approvedBySender` with `row.approvedBy === "sender"`, never truthiness. `loadContext` must confirm the invoice row belongs to `ticket.earmarkId` (GateContext has no invoice earmark id). Build `purposeText` from description + line labels. Give `ExtractedInvoice` strings a `.max()`.
 - M5: pay `Redemption.ticket.payeeEmail` (`payments` stores no payee). A crash after redeem leaves the Earmark in `paying` and `redeemTicket` cannot re-run, so execute needs a resume path. Each gate refusal appends an event, so rate-limit the route. TAMPERED/EXPIRED/STALE refusals currently leave no event.
@@ -88,5 +95,6 @@
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.
 - 2026-11-03 · M1 · Drizzle schema + migrations (incl. append-only triggers), `createDb`/`getDb`, seed-on-boot via `instrumentation.ts`, seed (3 institutions, 9 earmarks, 115 events, all chains verify), `db:reset`/`keys`, money helpers, canonical/chain/append + parity test, test helpers. 100 tests green; `next build` + boot seed verified. · Next: M2.
 - 2026-11-03 · M2 · `lib/ai/call.ts` (fixture/recorded/live + record + trace.step), contract draft/compile/registry, 10 contract evals (fixture 10/10), API routes (compile, create, approve, order, authorize, detail, events, freeze, ai-mode), orchestrator authorize, header (persona switcher, AI toggle), MoneyBar/StatusChip/ContractPanel/EventTimeline, `/compose`, `/earmarks/[id]`, PayPal Buttons (sandbox) + mock hold. 154 tests + 5 e2e green. · Human: ANTHROPIC_API_KEY → `pnpm eval:contracts:live`; try the sandbox Buttons once. Next: M3.
+- 2026-11-10 · M5 · `orchestrator/execute.ts` (redeem → capture exact, final → remainder → payout to the ticket's registry email → confirm; resumable with fixed Request-Ids), `webhooks.ts` + route (verify, dedupe), Guardian (6 tools, scripted/live), toolkit read tools (`get_order`, `list_transactions`), `flows/pay.ts`, approve/upload run the Guardian, TraceDrawer v1 + trace route, page-load nudge. Integration: happy, replay ×3, capture 4xx/5xx, payout fail + retry, simulated payout, webhooks. 7 e2e green. · Human: sandbox run.
 - 2026-11-10 · M4 · `pnpm fixtures` (Chromium → 11 PDFs + 1 skewed photo + hand-authored extractions), `invoice/{hash,extract,crosscheck,context,intake,samples}.ts`, AI wrapper sends file parts with no tools, upload/approve/reject/file routes, Invoices tab + `/invoices/[id]` review, eval runner. Fixture eval 12/12 first run. Handoff items done: history excludes the current invoice, `approvedBy === "sender"`, redemption context checks the Earmark, purposeText, `.max()` on strings. · Human: live extractor run.
 - 2026-11-07 · M3 · Recovered the working copy again (see Decisions). `policy/rules.ts` (R01–R17), `gate.ts`, `tickets.ts`, `crypto/hmac.ts`, `invoice/schema.ts`, `RuleChecklist`, guardrail: only the orchestrator redeems, only tickets.ts writes payments. money-reviewer found real holes behind 100% coverage (uploads reaching ALLOW, R09 bypass, stale-context cap double-spend, invoice text in reasons, NaN passing); all fixed with tests, and the fixes were not re-reviewed by the agent. 305 tests + 5 e2e green, policy 100%. `pnpm eval` does not exist until M4. · Next: M4. Human: recreate `.env`, add a private git remote, decide the beneficiary check.

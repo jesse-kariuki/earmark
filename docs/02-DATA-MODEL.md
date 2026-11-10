@@ -130,7 +130,7 @@ earmark.created            contract.compiled          contract.approved
 paypal.order_created       paypal.authorized          invoice.received
 invoice.extracted          invoice.signature_checked  policy.evaluated
 approval.requested         approval.granted           approval.rejected
-ticket.issued              ticket.redeemed            paypal.captured
+ticket.issued              ticket.redeemed            paypal.captured            paypal.capture_failed
 paypal.payout_sent         paypal.payout_succeeded    paypal.payout_failed
 remainder.released         recipient.notified         recipient.confirmed
 earmark.frozen             earmark.unfrozen           earmark.voided

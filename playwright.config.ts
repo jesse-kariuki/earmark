@@ -9,7 +9,8 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `pnpm build && pnpm start -p ${PORT}`,
+    // A fresh DB per server start, so reruns never trip the duplicate rule on a previous run's invoice.
+    command: `node scripts/rm-db.mjs .data/e2e.db && pnpm build && pnpm start -p ${PORT}`,
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,

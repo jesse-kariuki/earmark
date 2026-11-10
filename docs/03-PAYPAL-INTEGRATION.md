@@ -200,6 +200,15 @@ sandbox through PayPal's MCP server:
 ```
 Use it during development to inspect orders/transactions; mention it in the README "How PayPal is used".
 
+### 3.7 What the code does (M5)
+
+- Capture 4xx → payment `failed`, Earmark back to `held`, `paypal.capture_failed {retryable:false}`. Capture 5xx or a
+  network error is ambiguous → payment stays `pending`, the Earmark page retries with the same `pay_x:capture`.
+- Payout failure → payment `failed` with the capture kept; the Earmark page retries with the same `pay_x:payout`
+  (and `sender_batch_id = pay_x`), so it can never pay twice. Earmark → `paid` only on payout item SUCCESS
+  (poll on page load, or a verified webhook).
+- The mock PayPal adopts holds recorded in our DB (seeded `AUTH-SEED-…`, or holds made before a dev restart).
+
 ## 4. Fallbacks
 
 - **A. Payouts not enabled:** try enabling in sandbox app → if still blocked, capture to platform and

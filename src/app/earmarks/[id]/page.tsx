@@ -4,11 +4,14 @@ import { ContractPanel } from "@/components/ContractPanel";
 import { EventTimeline } from "@/components/EventTimeline";
 import { MoneyBar } from "@/components/MoneyBar";
 import { invoiceChip, StatusChip } from "@/components/StatusChip";
+import { TraceDrawer } from "@/components/TraceDrawer";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { invoices, payments } from "@/lib/db/schema";
 import { getEarmarkDetail, TERMINAL } from "@/lib/earmarks/service";
 import { getEvents } from "@/lib/events/append";
+import { describeEvent } from "@/lib/events/describe";
+import { orchestrator } from "@/lib/orchestrator";
 import { env } from "@/lib/env";
 import { formatMoney } from "@/lib/money";
 import { EarmarkTabs } from "./EarmarkTabs";
@@ -20,6 +23,8 @@ export const dynamic = "force-dynamic";
 export default async function EarmarkPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
+  // Carry forward any payment waiting on a PayPal confirmation or a retry (the webhook fallback, docs/03 §4 B).
+  await orchestrator.nudge(id);
   const detail = getEarmarkDetail(db, id);
   if (!detail.ok) notFound();
   const { earmark: e, institution, money } = detail.value;
@@ -57,7 +62,8 @@ export default async function EarmarkPage({ params }: { params: Promise<{ id: st
         <MoneyBar money={money} currency={e.currency} kesRate={env.KES_DISPLAY_RATE} />
       </div>
 
-      <nav aria-label="Share" className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <nav aria-label="Share" className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <TraceDrawer lines={events.map(describeEvent)} />
         <Link className="text-primary underline-offset-4 hover:underline" href={`/r/${e.id}`}>
           Recipient view
         </Link>

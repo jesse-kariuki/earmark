@@ -106,6 +106,10 @@ export const ExtractedInvoice = z.object({
 ## 3. Guardian agent (`src/lib/agents/guardian.ts`)
 
 Runs after an invoice is evaluated (or on sender click "Ask Guardian"). Max 6 steps.
+In `AI_MODE=fixture` a **scripted** Guardian calls the same tools in the order the prompt gives (getEarmark → get_order →
+getInvoiceSummary → propose / request approval / stop); the trace labels it `scripted`. Live mode lets Claude choose.
+The PayPal Agent Toolkit (1.11.0) targets AI SDK v4, so its `get_order` / `list_transactions` are wrapped in v7 tools
+that call the toolkit tool's `execute` (`src/lib/paypal/toolkit.ts`).
 
 Tools (AI SDK `tool()` with Zod params):
 

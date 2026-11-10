@@ -306,13 +306,19 @@ export async function confirmPayout(db: Db, deps: ExecuteDeps, paymentId: string
   }
 }
 
-/** Payments an Earmark page should nudge forward: stuck after a retryable error, or waiting for payout confirmation. */
+/** Payments an Earmark page should nudge forward: stuck after a retryable error, a captured payment whose payout
+ * failed (the money must still reach the school; same Request-Id, so never twice), or waiting for confirmation. */
 export function pendingPaymentIds(db: Db, earmarkId: string): string[] {
   return db
     .select()
     .from(payments)
     .where(eq(payments.earmarkId, earmarkId))
     .all()
-    .filter((p) => (p.status === "paid_out" && p.payoutItemId === null) || (p.status === "pending" && p.error !== null))
+    .filter(
+      (p) =>
+        (p.status === "paid_out" && p.payoutItemId === null) ||
+        (p.status === "pending" && p.error !== null) ||
+        (p.status === "failed" && p.captureId !== null && p.payoutBatchId === null),
+    )
     .map((p) => p.id);
 }
