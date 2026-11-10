@@ -61,6 +61,8 @@ export interface AiRuntime {
   fixturesDir: string;
   now: () => number;
   generate?: LiveGenerate;
+  /** Called before each live model call (the daily budget counter). */
+  onLiveCall?: () => void;
   /** Append a trace.step to this earmark's chain. */
   trace?: { db: Db; earmarkId: string };
 }
@@ -123,6 +125,7 @@ export async function callAi<T>(input: AiCallInput<T>, rt: AiRuntime): Promise<A
     if (!rt.apiKeyPresent || !rt.model) {
       return err({ code: "AI_NOT_CONFIGURED", message: "Live AI needs ANTHROPIC_API_KEY and ANTHROPIC_MODEL." });
     }
+    rt.onLiveCall?.();
     try {
       raw = await (rt.generate ?? defaultGenerate)({
         model: rt.model,

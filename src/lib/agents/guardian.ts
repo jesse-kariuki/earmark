@@ -45,6 +45,7 @@ export interface GuardianDeps {
   mode: "fixture" | "live";
   model?: string;
   apiKeyPresent: boolean;
+  onLiveCall?: () => void;
   /** Tests inject a fake model loop; default is generateText with the tools below. */
   liveRun?: (args: { instructions: string; prompt: string; tools: GuardianTools }) => Promise<{ text: string; steps: number }>;
 }
@@ -211,6 +212,7 @@ export async function runGuardian(deps: GuardianDeps, invoiceId: string): Promis
           const r = await generateText({ model: anthropic(deps.model!), instructions: a.instructions, prompt: a.prompt, tools: a.tools, stopWhen: isStepCount(6), temperature: 0 });
           return { text: r.text, steps: r.steps.length };
         });
+      deps.onLiveCall?.();
       const r = await run({ instructions: GUARDIAN_INSTRUCTIONS, prompt, tools: set.tools });
       const verdict = storedVerdict(deps.db, invoiceId);
       appendEvent(deps.db, { earmarkId, type: "trace.step", actor: "guardian", payload: { stage: "guardian", source: "live", model: deps.model, steps: r.steps, latencyMs: deps.now() - started, outcome: resultFrom(state, "live", r.steps, "", verdict).outcome } }, { now: deps.now() });
