@@ -35,7 +35,7 @@ rate-limit write routes (simple in-memory token bucket per IP, 30/min) on the ho
 | `GET  /api/institution/registry` | — | Public list `{ id, name, verified, publicKey }` |
 | `POST /api/institution/invoices` | `{ payload, signature, keyId }` | Verify signature → create invoice `source=signed` → gate → auto-run Guardian if ALLOW |
 | `GET  /api/institution/invoices/:id` | — | Status for the school console (paid / blocked + reasons) |
-| `POST /api/school/issue` *(demo helper)* | `{ earmarkRef, lineItems }` | Server-side Registrar signs with the seeded school key and calls the endpoint above (so the console needs no key handling in the browser) |
+| `POST /api/school/issue` *(demo helper)* | `{ earmarkRef, lineItems, description?, tamper? }` (`tamper` adds a $40 line after signing → R12) | Server-side Registrar signs with the seeded school key and calls the endpoint above (so the console needs no key handling in the browser) |
 
 ## Recipient
 

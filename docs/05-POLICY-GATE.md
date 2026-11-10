@@ -114,6 +114,7 @@ export const SignedInvoicePayload = z.object({
   invoiceNumber: z.string(),
   earmarkRef: z.string(),           // earmark id the school was given (via recipient/sender share link)
   studentName: z.string(),
+  description: z.string().optional(), // e.g. "Term 1 2027 school fees" — R10 reads it with the line labels
   lineItems: z.array(z.object({ label: z.string(), amountMinor: z.number().int() })),
   totalMinor: z.number().int(),
   currency: z.literal("USD"),
@@ -126,5 +127,7 @@ export const SignedInvoicePayload = z.object({
 `fileHash` for signed invoices = sha256(canonicalJson(payload)).
 Verification: look up `registry[payload.institutionId].publicKey`; `crypto.verify(null, bytes, key, sig)`.
 Tests: valid; one byte of payload changed; signed by a different key; unknown institution.
+`keyId` must equal `payload.institutionId`. Only a correctly signed, non-duplicate invoice is stored: a forged one
+must not claim an invoice number (the Institution API is public). At redemption the stored signature is verified again.
 
 Institution API (also exported as `public/openapi.yaml`, see `06-API-SPEC.md`).

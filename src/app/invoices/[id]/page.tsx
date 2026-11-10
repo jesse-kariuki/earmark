@@ -11,6 +11,7 @@ import { getEvents } from "@/lib/events/append";
 import { describeEvent } from "@/lib/events/describe";
 import { findInvoice } from "@/lib/invoice/intake";
 import { ExtractedInvoice } from "@/lib/invoice/schema";
+import { SignedInvoicePayload } from "@/lib/invoice/signed";
 import { formatMoney } from "@/lib/money";
 import type { GateResult } from "@/lib/policy/types";
 import { AskGuardian } from "./AskGuardian";
@@ -50,6 +51,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const earmark = db.select().from(earmarks).where(eq(earmarks.id, inv.earmarkId)).get()!;
   const payment = db.select().from(payments).where(eq(payments.invoiceId, id)).get();
   const extracted = ExtractedInvoice.safeParse(inv.extracted);
+  const signed = inv.source === "signed" ? SignedInvoicePayload.safeParse(inv.extracted) : null;
   const verdict = inv.verdict === "PENDING" ? "REQUIRE_APPROVAL" : inv.verdict;
   const firstBlocking =
     inv.reasons.find((r) => r.status === "fail")?.ruleId ?? (verdict === "REQUIRE_APPROVAL" ? inv.reasons.find((r) => r.status === "warn")?.ruleId : undefined);
@@ -81,6 +83,40 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             ) : (
               <iframe src={`/api/invoices/${id}/file`} title="Uploaded invoice" className="h-[520px] w-full rounded-xl border" />
             )
+          ) : signed?.success ? (
+            <div className="rounded-xl border">
+              <h2 className="border-b px-4 py-2 text-sm font-medium">Signed by {inv.payeeName} · key {signed.data.institutionId}</h2>
+              <dl className="divide-y text-sm">
+                {(
+                  [
+                    ["Invoice no.", signed.data.invoiceNumber],
+                    ["Student", signed.data.studentName],
+                    ["Description", signed.data.description ?? "—"],
+                    ["Pay to", signed.data.payoutAccount],
+                    ["Issued", signed.data.issuedAt.slice(0, 10)],
+                    ["Due", signed.data.dueDate],
+                  ] as const
+                ).map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-[7rem_1fr] gap-3 px-4 py-2">
+                    <dt className="text-muted-foreground">{k}</dt>
+                    <dd className="break-words">{v}</dd>
+                  </div>
+                ))}
+                <div className="px-4 py-2">
+                  <dt className="text-muted-foreground">Line items</dt>
+                  <dd>
+                    <ul className="mt-1 space-y-0.5">
+                      {signed.data.lineItems.map((li, i) => (
+                        <li key={i} className="flex justify-between gap-4">
+                          <span>{li.label}</span>
+                          <span className="tabular-nums">{formatMoney(li.amountMinor, signed.data.currency)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              </dl>
+            </div>
           ) : (
             <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">No file preview for this invoice.</div>
           )}

@@ -20,6 +20,7 @@ import { crosscheck } from "./crosscheck";
 import { extractInvoice, isSupportedMime } from "./extract";
 import { fileHash } from "./hash";
 import type { ExtractedInvoice } from "./schema";
+import { type SignedInvoiceWire, signedFileHash, signedGateInvoice } from "./signed";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -191,7 +192,7 @@ export function regate(tx: Db | Tx, row: Invoice, now: number): GateResult {
   return evaluate({
     now,
     earmark: gateEarmark(earmarkRow),
-    invoice: gateInvoiceFromRow(row, registry.resolve),
+    invoice: gateInvoiceFromRow(row, registry),
     registry: registry.gate,
     history: historyExcluding(tx, row.id),
   });
@@ -231,5 +232,58 @@ export function rejectInvoice(db: Db, id: string, now: number): Result<Invoice, 
     const invoice = tx.update(invoices).set({ approvedBy: "rejected" }).where(eq(invoices.id, id)).returning().get()!;
     appendEvent(tx, { earmarkId: row.earmarkId, type: "approval.rejected", actor: "sender", payload: { invoiceId: id } }, { now });
     return ok(invoice);
+  });
+}
+
+export interface SignedOutcome {
+  invoiceId: string;
+  stored: boolean;
+  signatureValid: boolean;
+  gate: GateResult;
+}
+
+/**
+ * Connected mode: a school-signed invoice → verify → gate → save. Only a correctly signed, non-duplicate invoice is
+ * stored, so a forged one cannot claim an invoice number and block the school's real invoice later.
+ */
+export function intakeSigned(db: Db, wire: SignedInvoiceWire, now: number): Result<SignedOutcome, AppError> {
+  const earmarkId = wire.payload.earmarkRef;
+  const exists = db.select({ id: earmarks.id }).from(earmarks).where(eq(earmarks.id, earmarkId)).get();
+  if (!exists) return err({ code: "NOT_FOUND", message: `No Earmark with reference ${earmarkId}.` });
+
+  return db.transaction((tx) => {
+    const invoiceId = `inv_${nanoid(12)}`;
+    const registry = registrySnapshot(tx);
+    const invoice = signedGateInvoice({ id: invoiceId, wire, registry: registry.gate, approvedBySender: false });
+    const signatureValid = invoice.signatureValid === true;
+    appendEvent(tx, { earmarkId, type: "invoice.received", actor: "school", payload: { invoiceId, source: "signed", fileHash: signedFileHash(wire.payload), keyId: wire.keyId.slice(0, 64) } }, { now });
+    appendEvent(tx, { earmarkId, type: "invoice.signature_checked", actor: "system", payload: { invoiceId, valid: signatureValid, institutionId: invoice.institutionId } }, { now });
+
+    const earmarkRow = tx.select().from(earmarks).where(eq(earmarks.id, earmarkId)).get()!;
+    const gate = evaluate({ now, earmark: gateEarmark(earmarkRow), invoice, registry: registry.gate, history: historyExcluding(tx, null) });
+    const stored = signatureValid && !failedRules(gate).includes("R09_NOT_DUPLICATE");
+    if (stored) {
+      tx.insert(invoices)
+        .values({
+          id: invoiceId,
+          earmarkId,
+          source: "signed",
+          fileHash: invoice.fileHash,
+          invoiceNumber: invoice.invoiceNumber,
+          institutionId: invoice.institutionId,
+          payeeName: invoice.payeeName,
+          payeeAccount: invoice.payeeAccount,
+          amountMinor: invoice.amountMinor,
+          currency: invoice.currency,
+          extracted: wire.payload,
+          signature: wire.signature,
+          verdict: gate.verdict,
+          reasons: gate.results,
+          createdAt: new Date(now),
+        })
+        .run();
+    }
+    policyEvent(tx, earmarkId, invoiceId, gate, now, stored ? {} : { stored: false });
+    return ok({ invoiceId, stored, signatureValid, gate });
   });
 }

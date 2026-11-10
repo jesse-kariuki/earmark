@@ -1,7 +1,6 @@
 import "server-only";
 // Ed25519 keys for the school (connected mode). Keys travel as base64-encoded PEM (env-friendly, one line).
-// M1 needs only key generation/loading for the seed; M6 adds sign/verify of invoice payloads.
-import { generateKeyPairSync } from "node:crypto";
+import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -40,4 +39,22 @@ export function loadSchoolKeys(
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify(pair, null, 2), { mode: 0o600 });
   return { ...pair, source: "generated" };
+}
+
+const pem = (b64: string) => Buffer.from(b64, "base64").toString("utf8");
+
+/** Ed25519 signature over `message`, base64. */
+export function signEd25519(privateKeyB64: string, message: string | Uint8Array): string {
+  return sign(null, Buffer.from(message), createPrivateKey(pem(privateKeyB64))).toString("base64");
+}
+
+/** True only for a well-formed key and a signature that verifies. Never throws: bad input is just "not valid". */
+export function verifyEd25519(publicKeyB64: string, message: string | Uint8Array, signatureB64: string): boolean {
+  try {
+    const key = createPublicKey(pem(publicKeyB64));
+    if (key.asymmetricKeyType !== "ed25519") return false;
+    return verify(null, Buffer.from(message), key, Buffer.from(signatureB64, "base64"));
+  } catch {
+    return false;
+  }
 }

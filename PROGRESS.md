@@ -4,7 +4,7 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M5 — Orchestrator, Guardian, webhooks** done in mock → next **M6 — Connected institution mode** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
+**M6 — Connected institution mode** done → next **M7 — Proof Receipt & recipient view** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2

@@ -10,6 +10,7 @@ import { gateEarmark, type RedemptionContext } from "@/lib/policy/tickets";
 import type { GateContext } from "@/lib/policy/types";
 import { crosscheck } from "./crosscheck";
 import { ExtractedInvoice } from "./schema";
+import { SignedInvoicePayload, signedGateInvoice } from "./signed";
 
 type Reader = Db | Tx;
 
@@ -36,11 +37,18 @@ export function historyExcluding(db: Reader, excludeId: string | null): GateCont
   return { fileHashes, invoiceNumbers };
 }
 
-/** The gate's invoice facts for a stored row. Uploads are re-crosschecked from the stored extraction. */
-export function gateInvoiceFromRow(row: Invoice, resolve: readonly ResolveEntry[]): GateContext["invoice"] {
-  if (row.source !== "uploaded") throw new Error(`gateInvoiceFromRow: ${row.source} invoices are handled by the connected-mode loader`);
+/**
+ * The gate's invoice facts for a stored row. Uploads are re-crosschecked from the stored extraction; signed invoices
+ * have their signature verified again against the registry key as it is now.
+ */
+export function gateInvoiceFromRow(row: Invoice, registry: ReturnType<typeof registrySnapshot>): GateContext["invoice"] {
+  const approvedBySender = row.approvedBy === "sender";
+  if (row.source === "signed") {
+    const payload = SignedInvoicePayload.parse(row.extracted);
+    return signedGateInvoice({ id: row.id, wire: { payload, signature: row.signature ?? "", keyId: payload.institutionId }, registry: registry.gate, approvedBySender });
+  }
   const extracted = ExtractedInvoice.parse(row.extracted);
-  const x = crosscheck(extracted, resolve);
+  const x = crosscheck(extracted, registry.resolve);
   return {
     id: row.id,
     source: "uploaded",
@@ -55,7 +63,7 @@ export function gateInvoiceFromRow(row: Invoice, resolve: readonly ResolveEntry[
     lineItemsSumMinor: x.lineItemsSumMinor,
     purposeText: x.purposeText,
     containsInstructions: x.containsInstructions,
-    approvedBySender: row.approvedBy === "sender",
+    approvedBySender,
   };
 }
 
@@ -64,7 +72,7 @@ export function loadRedemptionContext(tx: Tx, invoiceId: string, earmarkId: stri
   const row = tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.earmarkId, earmarkId))).get();
   if (!row) throw new Error(`loadRedemptionContext: invoice ${invoiceId} is not on earmark ${earmarkId}`);
   const registry = registrySnapshot(tx);
-  return { invoice: gateInvoiceFromRow(row, registry.resolve), registry: registry.gate, history: historyExcluding(tx, invoiceId) };
+  return { invoice: gateInvoiceFromRow(row, registry), registry: registry.gate, history: historyExcluding(tx, invoiceId) };
 }
 
 /** The whole gate context for a stored invoice as things stand now (for proposals and re-checks). */
@@ -76,7 +84,7 @@ export function invoiceGateContext(db: Reader, invoiceId: string, now: number, p
   return {
     now,
     earmark: gateEarmark(earmark),
-    invoice: gateInvoiceFromRow(row, registry.resolve),
+    invoice: gateInvoiceFromRow(row, registry),
     registry: registry.gate,
     history: historyExcluding(db, invoiceId),
     ...(proposal ? { proposal } : {}),
