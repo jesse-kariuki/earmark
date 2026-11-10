@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { AiModeToggle } from "@/components/AiModeToggle";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
+import { ResetButton } from "@/components/ResetButton";
 import { SandboxBadge } from "@/components/SandboxBadge";
 import { AI_MODE_COOKIE, resolveAiMode } from "@/lib/ai/runtime";
 import { env } from "@/lib/env";
@@ -41,7 +42,10 @@ export default async function RootLayout({
             <SandboxBadge />
           </div>
           <PersonaSwitcher />
-          <AiModeToggle initial={aiMode} liveAvailable={Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL)} />
+          <div className="flex items-center gap-2">
+            <AiModeToggle initial={aiMode} liveAvailable={Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL)} />
+            {env.JUDGE_MODE && <ResetButton />}
+          </div>
         </header>
         {children}
       </body>

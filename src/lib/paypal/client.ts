@@ -31,3 +31,8 @@ export const paypal: PayPalClient =
 export function mockState(): ReturnType<MockPayPal["inspect"]> | null {
   return env.PAYPAL_MODE === "sandbox" ? null : (paypal as MockPayPal).inspect();
 }
+
+/** Judge-mode reset: the mock forgets every order, hold and payout. No-op in sandbox mode. */
+export function resetMockPayPal(): void {
+  if (env.PAYPAL_MODE !== "sandbox") (paypal as MockPayPal).reset();
+}
