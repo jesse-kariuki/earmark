@@ -4,7 +4,7 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M7 — Proof Receipt & recipient view** done → next **M8 — Ledger & trace polish** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
+**M8 — Ledger & trace polish** done → next **M9 — Attack Lab, pause, guardrails** · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
@@ -15,7 +15,7 @@
 - [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5 · mock slice + all integration tests done; waiting on human: sandbox happy path (needs `.env` with PayPal sandbox keys) and webhook registration on the Render URL
 - [x] M6 Connected institution mode — Nov 10 (planned Nov 6)
 - [x] M7 Proof Receipt & recipient view — Nov 10 (planned Nov 6)
-- [ ] M8 Ledger & trace polish — Nov 7
+- [x] M8 Ledger & trace polish — Nov 10 (planned Nov 7)
 - [ ] M9 Attack Lab, pause, guardrails — Nov 8
 - [ ] M10 Design pass, README — Nov 9 (FREEZE)
 - [ ] M11 Hardening & first take — Nov 10
@@ -89,6 +89,8 @@
 - 2026-11-10 · Explanation guard treats only `$`/`USD`/`KES`-prefixed or two-decimal numbers as money · doc 04's regex matches every digit, so "Term 1 2027" would be rejected. In fixture mode the template is used directly (no model call).
 - 2026-11-10 · Tamper route is `POST /api/admin/tamper/:earmarkId` with optional `{ seq }`; it defaults to the capture event · one button, the most telling event.
 
+- 2026-11-10 · Ledger detail opens in a side panel, not an expanded row · AG Grid master/detail is Enterprise; full-width inserted rows break sort/filter. Blocked attempts are counted from `policy.evaluated` BLOCK events, because a blocked duplicate never becomes an invoice row.
+
 ### Handoff from the M3 money review
 - M4: `history` must exclude the current invoice and use `invoiceNumberKey`. Set `approvedBySender` with `row.approvedBy === "sender"`, never truthiness. `loadContext` must confirm the invoice row belongs to `ticket.earmarkId` (GateContext has no invoice earmark id). Build `purposeText` from description + line labels. Give `ExtractedInvoice` strings a `.max()`.
 - M5: pay `Redemption.ticket.payeeEmail` (`payments` stores no payee). A crash after redeem leaves the Earmark in `paying` and `redeemTicket` cannot re-run, so execute needs a resume path. Each gate refusal appends an event, so rate-limit the route. TAMPERED/EXPIRED/STALE refusals currently leave no event.
@@ -102,6 +104,7 @@
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.
 - 2026-11-03 · M1 · Drizzle schema + migrations (incl. append-only triggers), `createDb`/`getDb`, seed-on-boot via `instrumentation.ts`, seed (3 institutions, 9 earmarks, 115 events, all chains verify), `db:reset`/`keys`, money helpers, canonical/chain/append + parity test, test helpers. 100 tests green; `next build` + boot seed verified. · Next: M2.
 - 2026-11-03 · M2 · `lib/ai/call.ts` (fixture/recorded/live + record + trace.step), contract draft/compile/registry, 10 contract evals (fixture 10/10), API routes (compile, create, approve, order, authorize, detail, events, freeze, ai-mode), orchestrator authorize, header (persona switcher, AI toggle), MoneyBar/StatusChip/ContractPanel/EventTimeline, `/compose`, `/earmarks/[id]`, PayPal Buttons (sandbox) + mock hold. 154 tests + 5 e2e green. · Human: ANTHROPIC_API_KEY → `pnpm eval:contracts:live`; try the sandbox Buttons once. Next: M3.
+- 2026-11-10 · M8 · AG Grid Community 33.3.2 ledger (`/ledger`, `GET /api/earmarks`): summary cards, quick filter, column filters, sort, external "Blocked attempts" filter, side detail panel (invoices + first failing rule, payments, links) → Open trace. TraceDrawer gains `hideTrigger`/`onClose`. Fixed a self-referencing `--font-sans` that made every page fall back to serif. Ledger e2e green.
 - 2026-11-10 · M7 · `/receipt/[id]` (WebCrypto verification in the browser, expected-vs-got on the broken event, copy link, judge-mode tamper button), `lib/admin/{tamper,reset}.ts` + routes, header Reset (judge mode), `explain.ts` (guard on amounts / emails / institutions, EN + SW template fallback), `/r/[id]` mobile card + confirm, `recipient.notified` once. e2e: verified → tamper → broken at the capture event; 360px recipient check.
 - 2026-11-10 · M6 · Ed25519 sign/verify, `invoice/signed.ts`, `intakeSigned`, Registrar (with tamper demo), institution registry/invoices/status routes, `/api/school/issue`, `/school` console, `public/openapi.yaml`, signed-invoice view. API #2 and #3, forged and altered → R12, school e2e green.
 - 2026-11-10 · M5 · `orchestrator/execute.ts` (redeem → capture exact, final → remainder → payout to the ticket's registry email → confirm; resumable with fixed Request-Ids), `webhooks.ts` + route (verify, dedupe), Guardian (6 tools, scripted/live), toolkit read tools (`get_order`, `list_transactions`), `flows/pay.ts`, approve/upload run the Guardian, TraceDrawer v1 + trace route, page-load nudge. Integration: happy, replay ×3, capture 4xx/5xx, payout fail + retry, simulated payout, webhooks. 7 e2e green. · Human: sandbox run.

@@ -24,21 +24,44 @@ const TONE: Record<TraceLine["tone"], string> = {
   warn: "text-amber-900",
 };
 
-export function TraceDrawer({ lines, label = "Open trace", initialOpen = false }: { lines: TraceLine[]; label?: string; initialOpen?: boolean }) {
-  const [open, setOpen] = useState(initialOpen);
+export function TraceDrawer({
+  lines,
+  label = "Open trace",
+  initialOpen = false,
+  onClose,
+  hideTrigger = false,
+}: {
+  lines: TraceLine[];
+  label?: string;
+  initialOpen?: boolean;
+  onClose?: () => void;
+  /** For callers that open the drawer from their own button (the ledger detail panel). */
+  hideTrigger?: boolean;
+}) {
+  const [open, setOpenState] = useState(initialOpen);
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    if (!next) onClose?.();
+  };
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpenState(false);
+      onClose?.();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, onClose]);
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm hover:bg-muted">
-        <ListTree aria-hidden className="size-4" />
-        {label}
-      </button>
+      {!hideTrigger && (
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm hover:bg-muted">
+          <ListTree aria-hidden className="size-4" />
+          {label}
+        </button>
+      )}
       {open && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Trace">
           <button type="button" aria-label="Close trace" className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
