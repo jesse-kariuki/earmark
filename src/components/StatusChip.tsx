@@ -1,8 +1,8 @@
-import { Ban, Check, CircleDashed, Hand, Hourglass, Loader, Lock, Pause, Undo2 } from "lucide-react";
+import { Ban, Check, CircleCheck, CircleDashed, CircleX, Hand, Hourglass, Loader, Lock, Pause, Undo2 } from "lucide-react";
 import type { EarmarkStatus } from "@/lib/db/schema";
 
 // Status chip = icon + word + colour, never colour alone (docs/07-UI-SCREENS.md).
-export type ChipKind = EarmarkStatus | "blocked" | "needs_approval" | "paused";
+export type ChipKind = EarmarkStatus | "blocked" | "needs_approval" | "paused" | "approved" | "rejected";
 
 const CHIPS: Record<ChipKind, { label: string; icon: typeof Lock; className: string }> = {
   draft: { label: "Draft", icon: CircleDashed, className: "border-zinc-300 bg-zinc-50 text-zinc-700" },
@@ -16,7 +16,18 @@ const CHIPS: Record<ChipKind, { label: string; icon: typeof Lock; className: str
   blocked: { label: "Blocked", icon: Ban, className: "border-red-300 bg-red-50 text-red-800" },
   needs_approval: { label: "Needs approval", icon: Hand, className: "border-amber-300 bg-amber-50 text-amber-900" },
   paused: { label: "Paused", icon: Pause, className: "border-amber-300 bg-amber-50 text-amber-900" },
+  approved: { label: "Approved", icon: CircleCheck, className: "border-teal-300 bg-white text-teal-800" },
+  rejected: { label: "Rejected", icon: CircleX, className: "border-zinc-300 bg-zinc-100 text-zinc-700" },
 };
+
+/** An invoice's chip: paid beats everything, then the sender's decision, then the gate verdict. */
+export function invoiceChip(i: { verdict: string; approvedBy: string | null; paid?: boolean }): ChipKind {
+  if (i.paid) return "paid";
+  if (i.verdict === "BLOCK") return "blocked";
+  if (i.approvedBy === "rejected") return "rejected";
+  if (i.verdict === "REQUIRE_APPROVAL") return "needs_approval";
+  return "approved";
+}
 
 export function StatusChip({ kind }: { kind: ChipKind }) {
   const chip = CHIPS[kind];

@@ -63,7 +63,7 @@ Two env switches make the whole app runnable and testable with **no network**:
 | Var | Values | Effect |
 |---|---|---|
 | `PAYPAL_MODE` | `mock` \| `sandbox` | `mock` = in-memory fake PayPal (`src/lib/paypal/mock.ts`) with the same interface, deterministic IDs, honours `PayPal-Request-Id`. Tests always use `mock`. |
-| `AI_MODE` | `fixture` \| `live` | `fixture` = returns recorded outputs from `evals/fixtures/*.expected.json` keyed by file hash / sentence hash. `live` calls Claude. Video "judge mode" uses `fixture`; a toggle in the header switches to `live`. |
+| `AI_MODE` | `fixture` \| `live` | `fixture` = returns recorded outputs from `evals/fixtures/<stage>/<hash>.json` (or `recorded/<stage>/…`) keyed by file hash / sentence hash. `live` calls Claude. Video "judge mode" uses `fixture`; a toggle in the header switches to `live`. |
 
 **Rule:** every feature must work in `PAYPAL_MODE=mock AI_MODE=fixture` before it is wired to sandbox/live.
 
@@ -75,7 +75,7 @@ pnpm dev                 # Next dev server (http://localhost:3000)
 pnpm db:reset            # drop + migrate + seed SQLite (also runs on boot)
 pnpm test                # vitest run (must be green before every commit)
 pnpm test:watch
-pnpm eval                # run the 12-invoice eval set, prints pass rate, writes evals/RESULTS.md
+pnpm eval                # run the 12-invoice eval set, prints pass rate, writes evals/RESULTS.fixture.md (eval:live writes RESULTS.md)
 pnpm eval:live           # same with AI_MODE=live (costs tokens)
 pnpm e2e                 # playwright smoke (happy path + one attack)
 pnpm paypal:smoke        # scripts/paypal-smoke.ts — real sandbox: authorize → capture → payout → void

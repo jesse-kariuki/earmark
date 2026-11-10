@@ -23,7 +23,7 @@ rate-limit write routes (simple in-memory token bucket per IP, 30/min) on the ho
 
 | Method & path | Body | Does |
 |---|---|---|
-| `POST /api/earmarks/:id/invoices/upload` | multipart `file` | sha256 → duplicate pre-check → store file in `.data/uploads` → extract → crosscheck → gate → save invoice + events. Returns verdict + reasons. |
+| `POST /api/earmarks/:id/invoices/upload` | multipart `file`, or JSON `{ sample: "05" }` (one of the 12 eval invoices) | sha256 → duplicate pre-check → store file in `.data/uploads` → extract → crosscheck → gate → save invoice + events. Returns verdict + reasons. |
 | `POST /api/invoices/:id/approve` | — | Sender approval → sets approvedBySender → re-run gate → if ALLOW, run Guardian |
 | `POST /api/invoices/:id/reject` | — | `approval.rejected` |
 | `POST /api/invoices/:id/guardian` | — | Runs Guardian agent; if it obtains a ticket, the handler calls `orchestrator.execute(ticketId)`. Streams trace steps (SSE or simple polling). |

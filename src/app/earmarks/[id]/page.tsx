@@ -3,14 +3,17 @@ import Link from "next/link";
 import { ContractPanel } from "@/components/ContractPanel";
 import { EventTimeline } from "@/components/EventTimeline";
 import { MoneyBar } from "@/components/MoneyBar";
-import { StatusChip } from "@/components/StatusChip";
+import { invoiceChip, StatusChip } from "@/components/StatusChip";
+import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { invoices, payments } from "@/lib/db/schema";
 import { getEarmarkDetail, TERMINAL } from "@/lib/earmarks/service";
 import { getEvents } from "@/lib/events/append";
 import { env } from "@/lib/env";
 import { formatMoney } from "@/lib/money";
 import { EarmarkTabs } from "./EarmarkTabs";
 import { PauseSwitch } from "./PauseSwitch";
+import { UploadInvoice } from "./UploadInvoice";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +25,16 @@ export default async function EarmarkPage({ params }: { params: Promise<{ id: st
   const { earmark: e, institution, money } = detail.value;
   const events = getEvents(db, id);
   const terminal = TERMINAL.includes(e.status);
+  const invoiceRows = db.select().from(invoices).where(eq(invoices.earmarkId, id)).orderBy(asc(invoices.createdAt)).all();
+  const paidInvoiceIds = new Set(
+    db
+      .select({ invoiceId: payments.invoiceId, status: payments.status })
+      .from(payments)
+      .where(eq(payments.earmarkId, id))
+      .all()
+      .filter((p) => p.status === "paid_out")
+      .map((p) => p.invoiceId),
+  );
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -59,9 +72,33 @@ export default async function EarmarkPage({ params }: { params: Promise<{ id: st
       <EarmarkTabs
         timeline={<EventTimeline events={events} />}
         invoices={
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No invoices yet. The school sends a signed invoice, or you upload one, and every rule is checked before
-            anything is paid.
+          <div className="space-y-4">
+            {invoiceRows.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                No invoices yet. The school sends a signed invoice, or you upload one, and every rule is checked before
+                anything is paid.
+              </div>
+            ) : (
+              <ul className="divide-y rounded-xl border">
+                {invoiceRows.map((inv) => (
+                  <li key={inv.id}>
+                    <Link href={`/invoices/${inv.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{inv.payeeName ?? "Unknown payee"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {inv.invoiceNumber ?? "no number"} · {inv.source === "signed" ? "signed by school" : "uploaded"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm tabular-nums">{inv.amountMinor === null ? "—" : formatMoney(inv.amountMinor, inv.currency ?? e.currency)}</span>
+                        <StatusChip kind={invoiceChip({ ...inv, paid: paidInvoiceIds.has(inv.id) })} />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!terminal && <UploadInvoice earmarkId={e.id} />}
           </div>
         }
         contract={
