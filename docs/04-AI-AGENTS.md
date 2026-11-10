@@ -9,7 +9,9 @@
 | Guardian agent | Choose next step via tools | Every proposal goes through the gate; gate mints single-use ticket |
 | Explanation | Plain-language trace + EN/SW messages | Reject any message mentioning an amount or payee not in the log |
 
-All LLM calls: `temperature: 0`, model from `env.ANTHROPIC_MODEL`, via `@ai-sdk/anthropic`.
+All LLM calls: `temperature: 0`, via `src/lib/ai/provider.ts`. `AI_PROVIDER=anthropic` (default) uses `ANTHROPIC_MODEL` via
+`@ai-sdk/anthropic`; `AI_PROVIDER=google` uses `GOOGLE_MODEL` via `@ai-sdk/google` (Gemini, free tier, reads PDFs natively).
+The extractor still gets no tools on either provider.
 Fixture files: `evals/fixtures/<stage>/<inputHash>.json` (hand-authored) and
 `evals/fixtures/recorded/<stage>/<inputHash>.json` (live outputs; preferred when present). The header toggle sets a
 per-browser `earmark_ai_mode` cookie; live is refused when no key is configured.

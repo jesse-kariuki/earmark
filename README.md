@@ -73,8 +73,8 @@ pnpm test && pnpm eval        # offline, deterministic
 pnpm e2e                      # builds and runs the Playwright suite on :3100
 ```
 Real sandbox: set `PAYPAL_MODE=sandbox` and fill `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `NEXT_PUBLIC_PAYPAL_CLIENT_ID`,
-`SCHOOL_PAYPAL_EMAIL` (a sandbox business account), and `PAYPAL_WEBHOOK_ID` for webhooks. Live AI: `AI_MODE=live`,
-`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`; then `AI_RECORD=1 pnpm eval:live` records outputs that fixture mode replays.
+`SCHOOL_PAYPAL_EMAIL` (a sandbox business account), and `PAYPAL_WEBHOOK_ID` for webhooks. Live AI: `AI_MODE=live` with
+`ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL`, or with `AI_PROVIDER=google` + `GOOGLE_GENERATIVE_AI_API_KEY` + `GOOGLE_MODEL` (Gemini free tier); then `AI_RECORD=1 pnpm eval:live` records outputs that fixture mode replays.
 If you change `SCHOOL_PAYPAL_EMAIL`, run `pnpm fixtures` so the sample invoices print the same account.
 
 | Command | What it does |

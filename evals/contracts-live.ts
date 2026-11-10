@@ -1,9 +1,10 @@
 // pnpm eval:contracts:live — compile the 10 sentences in evals/contracts.json with the LIVE model and record
 // each output to evals/fixtures/recorded/contract.compile/ (fixture mode then replays them). Costs tokens.
-// Needs ANTHROPIC_API_KEY and ANTHROPIC_MODEL in .env.
+// Needs live AI keys in .env: ANTHROPIC_API_KEY + ANTHROPIC_MODEL, or AI_PROVIDER=google + GOOGLE_GENERATIVE_AI_API_KEY + GOOGLE_MODEL.
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { liveAiConfig } from "@/lib/ai/provider";
 import { FIXTURES_DIR } from "@/lib/ai/runtime";
 import { compileContract } from "@/lib/contract/compile";
 import { createDb } from "@/lib/db/client";
@@ -19,7 +20,8 @@ interface Case {
 
 async function main() {
   const env = parseEnv(process.env);
-  if (!env.ANTHROPIC_API_KEY || !env.ANTHROPIC_MODEL) throw new Error("Set ANTHROPIC_API_KEY and ANTHROPIC_MODEL in .env");
+  const live = liveAiConfig(env);
+  if (!live.apiKeyPresent || !live.model) throw new Error(`Set ${live.needs} in .env`);
 
   const db = createDb(":memory:");
   seed(db, { now: Date.now(), paypalMode: "mock", schoolEmail: env.SCHOOL_PAYPAL_EMAIL, lookalikeEmail: env.LOOKALIKE_PAYPAL_EMAIL, schoolPublicKey: null });
@@ -32,7 +34,7 @@ async function main() {
     const r = await compileContract(c.sentence, {
       registry,
       now,
-      ai: { mode: "live", record: true, model: env.ANTHROPIC_MODEL, apiKeyPresent: true, fixturesDir: FIXTURES_DIR, now: Date.now },
+      ai: { mode: "live", record: true, model: live.model, apiKeyPresent: true, fixturesDir: FIXTURES_DIR, now: Date.now },
     });
     if (!r.ok) {
       console.log(`✗ ${c.id}  ${r.error.code}: ${r.error.message}`);
@@ -56,7 +58,7 @@ async function main() {
         diffs.map((d) => `\n    ${d}: expected ${JSON.stringify(c.expected[d])}, got ${JSON.stringify(got[d])}`).join(""),
     );
   }
-  console.log(`\nContracts (live, ${env.ANTHROPIC_MODEL}): ${pass}/${cases.length}. Outputs recorded to evals/fixtures/recorded/.`);
+  console.log(`\nContracts (live, ${live.model}): ${pass}/${cases.length}. Outputs recorded to evals/fixtures/recorded/.`);
   if (pass < cases.length) process.exit(1);
 }
 

@@ -3,12 +3,12 @@ import "server-only";
 // Tools: getEarmark, getInvoiceSummary, requestSenderApproval, proposePayment, and PayPal's read-only get_order /
 // list_transactions. proposePayment is its ONLY path to money: the gate decides, and on ALLOW mints a ticket that
 // the route handler (never the model) hands to the orchestrator. It never sees raw invoice text (money rule 4).
-//   live    → Claude chooses the steps (max 6), temperature 0
+//   live    → the model (Claude or Gemini, AI_PROVIDER) chooses the steps (max 6), temperature 0
 //   fixture → a scripted Guardian calls the same tools in the order the prompt asks for; the trace says "scripted"
-import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, isStepCount, tool } from "ai";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { languageModel } from "@/lib/ai/provider";
 import type { Db } from "@/lib/db/client";
 import { earmarks, events, institutions, invoices } from "@/lib/db/schema";
 import { appendEvent } from "@/lib/events/append";
@@ -209,7 +209,7 @@ export async function runGuardian(deps: GuardianDeps, invoiceId: string): Promis
       const run =
         deps.liveRun ??
         (async (a) => {
-          const r = await generateText({ model: anthropic(deps.model!), instructions: a.instructions, prompt: a.prompt, tools: a.tools, stopWhen: isStepCount(6), temperature: 0 });
+          const r = await generateText({ model: languageModel(deps.model!), instructions: a.instructions, prompt: a.prompt, tools: a.tools, stopWhen: isStepCount(6), temperature: 0 });
           return { text: r.text, steps: r.steps.length };
         });
       deps.onLiveCall?.();

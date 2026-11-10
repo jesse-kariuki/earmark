@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AI_MODE_COOKIE } from "@/lib/ai/runtime";
-import { env } from "@/lib/env";
+import { liveAiAvailable } from "@/lib/ai/provider";
 import { errorJson, okJson, parseBody } from "@/lib/http/respond";
 
 const Body = z.object({ mode: z.enum(["fixture", "live"]) });
@@ -9,7 +9,7 @@ const Body = z.object({ mode: z.enum(["fixture", "live"]) });
 export async function POST(req: Request) {
   const body = await parseBody(req, Body);
   if (!body.ok) return errorJson(body.error);
-  if (body.value.mode === "live" && (!env.ANTHROPIC_API_KEY || !env.ANTHROPIC_MODEL)) {
+  if (body.value.mode === "live" && !liveAiAvailable()) {
     return errorJson({ code: "AI_ERROR", message: "Live AI is not configured on this server.", detail: { reason: "AI_NOT_CONFIGURED" } });
   }
   const res = okJson({ mode: body.value.mode });

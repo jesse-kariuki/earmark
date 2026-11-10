@@ -9,7 +9,8 @@ async function restrictedImportErrors(code: string, filePath: string) {
   return (result?.messages ?? []).filter((m) => m.ruleId === "no-restricted-imports");
 }
 
-describe("ESLint money-import rule", () => {
+// The first case pays for a cold ESLint start, which can exceed 20s when the whole suite runs in parallel.
+describe("ESLint money-import rule", { timeout: 60_000 }, () => {
   it.each([
     ['import { paypal } from "@/lib/paypal/client";', "src/app/api/x/route.ts"],
     ['import { paypal } from "../paypal/client";', "src/lib/agents/guardian.ts"],

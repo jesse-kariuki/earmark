@@ -5,6 +5,7 @@ import "dotenv/config";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AiRuntime } from "@/lib/ai/call";
+import { liveAiConfig } from "@/lib/ai/provider";
 import { FIXTURES_DIR } from "@/lib/ai/runtime";
 import { parseEnv } from "@/lib/env";
 import { EVAL_NOW, resultsMarkdown, runContractEvals, runInvoiceEvals } from "./runner";
@@ -12,15 +13,17 @@ import { EVAL_NOW, resultsMarkdown, runContractEvals, runInvoiceEvals } from "./
 async function main() {
   const live = process.argv.includes("--live");
   const env = parseEnv({ ...process.env, AI_MODE: live ? "live" : "fixture" });
+  const cfg = liveAiConfig(env);
   const ai: AiRuntime = {
     mode: live ? "live" : "fixture",
     record: env.AI_RECORD,
-    model: env.ANTHROPIC_MODEL,
-    apiKeyPresent: Boolean(env.ANTHROPIC_API_KEY),
+    model: cfg.model,
+    apiKeyPresent: cfg.apiKeyPresent,
+    needs: cfg.needs,
     fixturesDir: FIXTURES_DIR,
     now: Date.now,
   };
-  if (live && !env.ANTHROPIC_MODEL) throw new Error("Set ANTHROPIC_MODEL in .env for pnpm eval:live");
+  if (live && !cfg.model) throw new Error(`Set ${cfg.needs} in .env for pnpm eval:live`);
 
   const invoices = await runInvoiceEvals(ai);
   // Fixture contract outputs were written against the eval clock; live compiles against today.
@@ -31,7 +34,7 @@ async function main() {
   }
   for (const r of contracts) console.log(`${r.pass ? "✓" : "✗"} contract ${r.id} ${r.diffs.join("; ")}`);
 
-  const model = live ? env.ANTHROPIC_MODEL! : "fixtures";
+  const model = live ? cfg.model! : "fixtures";
   const md = resultsMarkdown({ mode: live ? "live" : "fixture", model, date: new Date().toISOString().slice(0, 10), invoices, contracts });
   writeFileSync(join(process.cwd(), "evals", live ? "RESULTS.md" : "RESULTS.fixture.md"), md);
   const ip = invoices.filter((r) => r.pass).length;

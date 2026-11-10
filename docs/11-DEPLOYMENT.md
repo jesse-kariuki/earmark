@@ -13,8 +13,10 @@
 | `PAYPAL_ACCESS_TOKEN` | | Only for the local MCP server in `.mcp.json` |
 | `SCHOOL_PAYPAL_EMAIL` | `sb-lakeview@business.example.com` | Seeded into registry |
 | `LOOKALIKE_PAYPAL_EMAIL` | | Seeded lookalike |
+| `AI_PROVIDER` | `anthropic` | `anthropic` or `google` |
 | `ANTHROPIC_API_KEY` | | |
 | `ANTHROPIC_MODEL` | | Current Claude model id with vision; set once, quoted in README |
+| `GOOGLE_GENERATIVE_AI_API_KEY` / `GOOGLE_MODEL` | | Only with `AI_PROVIDER=google` (Gemini model with PDF/image input) |
 | `TICKET_SECRET` | 32+ random bytes hex | HMAC for capability tickets |
 | `SCHOOL_PRIVATE_KEY` / `SCHOOL_PUBLIC_KEY` | base64 PEM | `pnpm keys` generates |
 | `DEMO_RESET_TOKEN` | | Guards `/api/admin/*` outside judge mode |

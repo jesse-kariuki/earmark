@@ -24,6 +24,12 @@ describe("env", () => {
     expect(() => parseEnv({ AI_MODE: "live" })).toThrow(/ANTHROPIC_API_KEY/);
   });
 
+  it("requires a Google key in live AI mode with AI_PROVIDER=google", () => {
+    expect(() => parseEnv({ AI_MODE: "live", AI_PROVIDER: "google" })).toThrow(/GOOGLE_GENERATIVE_AI_API_KEY/);
+    expect(parseEnv({ AI_MODE: "live", AI_PROVIDER: "google", GOOGLE_GENERATIVE_AI_API_KEY: "k" }).AI_PROVIDER).toBe("google");
+    expect(() => parseEnv({ AI_PROVIDER: "openai" })).toThrow(/AI_PROVIDER/);
+  });
+
   it("rejects unknown modes", () => {
     expect(() => parseEnv({ PAYPAL_MODE: "live" })).toThrow(/PAYPAL_MODE/);
   });

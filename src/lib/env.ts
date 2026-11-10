@@ -27,8 +27,11 @@ export const envSchema = z
     SCHOOL_PAYPAL_EMAIL: z.string().email().default("sb-lakeview@business.example.com"),
     LOOKALIKE_PAYPAL_EMAIL: z.string().email().default("sb-lookalike@personal.example.com"),
 
+    AI_PROVIDER: z.enum(["anthropic", "google"]).default("anthropic"),
     ANTHROPIC_API_KEY: optionalString,
     ANTHROPIC_MODEL: optionalString,
+    GOOGLE_GENERATIVE_AI_API_KEY: optionalString,
+    GOOGLE_MODEL: optionalString,
     AI_RECORD: bool.default(false),
     LIVE_AI_DAILY_BUDGET: z.coerce.number().int().nonnegative().default(200),
     RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(30),
@@ -50,8 +53,9 @@ export const envSchema = z
         }
       }
     }
-    if (e.AI_MODE === "live" && !e.ANTHROPIC_API_KEY) {
-      ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "ANTHROPIC_API_KEY is required when AI_MODE=live" });
+    const key = e.AI_PROVIDER === "google" ? "GOOGLE_GENERATIVE_AI_API_KEY" : "ANTHROPIC_API_KEY";
+    if (e.AI_MODE === "live" && !e[key]) {
+      ctx.addIssue({ code: "custom", path: [key], message: `${key} is required when AI_MODE=live and AI_PROVIDER=${e.AI_PROVIDER}` });
     }
   });
 

@@ -2,6 +2,7 @@ import "server-only";
 import { join } from "node:path";
 import { env } from "@/lib/env";
 import type { AiMode, AiRuntime } from "./call";
+import { liveAiConfig } from "./provider";
 
 export const AI_MODE_COOKIE = "earmark_ai_mode";
 export const FIXTURES_DIR = join(process.cwd(), "evals", "fixtures");
@@ -29,11 +30,13 @@ export function resolveAiMode(cookieValue: string | undefined): AiMode {
 }
 
 export function aiRuntime(mode: AiMode, extra: Partial<AiRuntime> = {}): AiRuntime {
+  const live = liveAiConfig();
   return {
     mode,
     record: env.AI_RECORD,
-    model: env.ANTHROPIC_MODEL,
-    apiKeyPresent: Boolean(env.ANTHROPIC_API_KEY),
+    model: live.model,
+    apiKeyPresent: live.apiKeyPresent,
+    needs: live.needs,
     fixturesDir: FIXTURES_DIR,
     now: Date.now,
     onLiveCall: noteLiveCall,

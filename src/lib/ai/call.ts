@@ -1,15 +1,15 @@
 import "server-only";
 // Every LLM call goes through here (docs/04-AI-AGENTS.md):
 //   fixture → recorded output from evals/fixtures/ (recorded/ first, then hand-authored), keyed by input hash
-//   live    → Claude via the AI SDK at temperature 0; with AI_RECORD=1 the output is written to evals/fixtures/recorded/
+//   live    → Claude or Gemini (AI_PROVIDER) via the AI SDK at temperature 0; with AI_RECORD=1 the output is written to evals/fixtures/recorded/
 // Output is always Zod-validated. When an earmark is known, a `trace.step` event is appended.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, Output } from "ai";
 import type { z } from "zod";
 import type { Db } from "@/lib/db/client";
 import { appendEvent } from "@/lib/events/append";
+import { languageModel } from "./provider";
 import { err, ok, type Result } from "@/lib/result";
 
 export type AiStage = "contract.compile" | "invoice.extract" | "guardian" | "explain";
@@ -58,6 +58,8 @@ export interface AiRuntime {
   record: boolean;
   model?: string;
   apiKeyPresent: boolean;
+  /** Env vars live AI needs, named in the not-configured error. */
+  needs?: string;
   fixturesDir: string;
   now: () => number;
   generate?: LiveGenerate;
@@ -82,7 +84,7 @@ export function fixturePath(dir: string, stage: AiStage, key: string, recorded: 
 // No `tools` option, ever: the invoice extractor must not be able to act (money rule 4). tests/guardrails asserts it.
 const defaultGenerate: LiveGenerate = async ({ model, instructions, prompt, schema, files }) => {
   const { output } = await generateText({
-    model: anthropic(model),
+    model: languageModel(model),
     instructions,
     prompt: files?.length
       ? [
@@ -123,7 +125,7 @@ export async function callAi<T>(input: AiCallInput<T>, rt: AiRuntime): Promise<A
     model = fixture.model;
   } else {
     if (!rt.apiKeyPresent || !rt.model) {
-      return err({ code: "AI_NOT_CONFIGURED", message: "Live AI needs ANTHROPIC_API_KEY and ANTHROPIC_MODEL." });
+      return err({ code: "AI_NOT_CONFIGURED", message: `Live AI needs ${rt.needs ?? "ANTHROPIC_API_KEY and ANTHROPIC_MODEL"}.` });
     }
     rt.onLiveCall?.();
     try {

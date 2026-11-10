@@ -96,9 +96,11 @@
 - M5: pay `Redemption.ticket.payeeEmail` (`payments` stores no payee). A crash after redeem leaves the Earmark in `paying` and `redeemTicket` cannot re-run, so execute needs a resume path. Each gate refusal appends an event, so rate-limit the route. TAMPERED/EXPIRED/STALE refusals currently leave no event.
 - OPEN (human decision): no rule ties an invoice to the contract's beneficiary, so a genuine Lakeview invoice for another student passes on Brian's Earmark. Signed invoices carry `earmarkRef` and `studentName`; uploads carry `studentName`.
 - Not fixed: lookalike invoice numbers (`LSS-2027-OO1`); uploads are still human-approved, signed ones are signature-bound.
+- 2026-11-10 (human-approved stack change): live AI can use Google Gemini as well as Claude. `AI_PROVIDER=anthropic|google` picks the provider in `src/lib/ai/provider.ts` (`@ai-sdk/google` 4.0.105); Anthropic stays the default. Gemini needs `GOOGLE_GENERATIVE_AI_API_KEY` + `GOOGLE_MODEL`. No money rule changes: same Zod output, the extractor still has no tools. Not yet run live against Gemini.
 
 ## Session log
 <!-- 2026-11-02 · M0 · what was done · what's next -->
+- 2026-11-10 · M11 · `AI_PROVIDER=google` option (Gemini free tier) for live AI; env, header toggle, evals and docs follow the provider. Fixed `pnpm dev` (edge instrumentation bundle). 426 tests green. · Human: a Gemini or Anthropic key, then `AI_RECORD=1 pnpm eval:live`.
 - 2026-11-02 · M0 (partial) · Next 15 + Tailwind 4 + shadcn scaffold, git init, Zod env, PayPal types/mock/sandbox/client, smoke script, ESLint money rule, /api/health, render.yaml, Vitest+coverage, Playwright smoke. typecheck/lint/test/e2e green. · Blocked on human: sandbox accounts + .env, then `pnpm paypal:smoke`; Render deploy. 
 - 2026-11-02 · M0 · Day-0 sandbox smoke fully green (OAuth, partial final capture, idempotent replay, payout SUCCESS, void, webhook names, toolkit 1.11.0). Only remaining M0 item: Render deploy + `/api/health` on the public URL.
 - 2026-11-03 · M0 · Recovered the repo after the working copy was partially wiped (see Decisions). typecheck/lint/test (42) and `next build` green. · Next: Render deploy + `/api/health` on the public URL, then M1.

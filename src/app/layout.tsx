@@ -6,6 +6,7 @@ import { AiModeToggle } from "@/components/AiModeToggle";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { ResetButton } from "@/components/ResetButton";
 import { SandboxBadge } from "@/components/SandboxBadge";
+import { liveAiAvailable } from "@/lib/ai/provider";
 import { AI_MODE_COOKIE, resolveAiMode } from "@/lib/ai/runtime";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -43,7 +44,7 @@ export default async function RootLayout({
           </div>
           <PersonaSwitcher />
           <div className="flex items-center gap-2">
-            <AiModeToggle initial={aiMode} liveAvailable={Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL)} />
+            <AiModeToggle initial={aiMode} liveAvailable={liveAiAvailable()} />
             {env.JUDGE_MODE && <ResetButton />}
           </div>
         </header>

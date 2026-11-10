@@ -3,9 +3,9 @@ import "server-only";
 // hands it to the orchestrator (docs/04-AI-AGENTS.md §3).
 import { type GuardianResult, runGuardian } from "@/lib/agents/guardian";
 import type { AiMode } from "@/lib/ai/call";
+import { liveAiConfig } from "@/lib/ai/provider";
 import { noteLiveCall } from "@/lib/ai/runtime";
 import { getDb } from "@/lib/db";
-import { env } from "@/lib/env";
 import type { AppError } from "@/lib/errors";
 import { orchestrator } from "@/lib/orchestrator";
 import type { PaymentOutcome } from "@/lib/orchestrator/execute";
@@ -18,8 +18,9 @@ export interface GuardAndPayResult {
 }
 
 export async function guardAndPay(invoiceId: string, mode: AiMode): Promise<GuardAndPayResult> {
+  const live = liveAiConfig();
   const guardian = await runGuardian(
-    { db: getDb(), now: Date.now, readTools: paypalReadTools(), mode, model: env.ANTHROPIC_MODEL, apiKeyPresent: Boolean(env.ANTHROPIC_API_KEY), onLiveCall: noteLiveCall },
+    { db: getDb(), now: Date.now, readTools: paypalReadTools(), mode, model: live.model, apiKeyPresent: live.apiKeyPresent, onLiveCall: noteLiveCall },
     invoiceId,
   );
   const payment = guardian.ticketId ? await orchestrator.execute(guardian.ticketId) : null;
