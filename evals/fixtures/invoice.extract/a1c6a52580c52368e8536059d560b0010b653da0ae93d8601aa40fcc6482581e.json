@@ -1,0 +1,54 @@
+{
+  "stage": "invoice.extract",
+  "input": "07-lookalike-payee.pdf",
+  "output": {
+    "institutionName": {
+      "value": "Lakeview Secondary Schools Ltd",
+      "confidence": 0.98
+    },
+    "payoutAccount": {
+      "value": "fees@lakeview-schools-ltd.example.com",
+      "confidence": 0.98
+    },
+    "invoiceNumber": {
+      "value": "LSS-2027-007",
+      "confidence": 0.98
+    },
+    "studentName": {
+      "value": "Brian Kamau",
+      "confidence": 0.98
+    },
+    "description": {
+      "value": "Term 1 2027 school fees",
+      "confidence": 0.98
+    },
+    "lineItems": [
+      {
+        "label": "Tuition",
+        "amount": "250.00"
+      },
+      {
+        "label": "Boarding",
+        "amount": "100.00"
+      }
+    ],
+    "total": {
+      "value": "350.00",
+      "confidence": 0.98
+    },
+    "currency": {
+      "value": "USD",
+      "confidence": 0.98
+    },
+    "issueDate": {
+      "value": "2026-11-01",
+      "confidence": 0.98
+    },
+    "dueDate": {
+      "value": "2027-01-05",
+      "confidence": 0.98
+    },
+    "containsInstructions": false
+  },
+  "model": "hand-authored"
+}

@@ -15,7 +15,10 @@
     "db:reset": "tsx --conditions=react-server scripts/db-reset.ts",
     "db:generate": "drizzle-kit generate",
     "keys": "tsx --conditions=react-server scripts/gen-keys.ts",
-    "eval:contracts:live": "tsx --conditions=react-server evals/contracts-live.ts"
+    "eval:contracts:live": "tsx --conditions=react-server evals/contracts-live.ts",
+    "fixtures": "tsx --conditions=react-server scripts/gen-fixtures.ts",
+    "eval": "tsx --conditions=react-server evals/run.ts",
+    "eval:live": "tsx --conditions=react-server evals/run.ts --live"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.96",

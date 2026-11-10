@@ -24,6 +24,13 @@ export interface AiCallInput<T> {
   fixtureKey: string;
   /** One-line, non-sensitive summary for the trace (never raw invoice text). */
   summarize?: (output: T) => string;
+  /** Documents sent alongside the prompt (invoice image/PDF). Never echoed into the trace or fixtures. */
+  files?: AiFile[];
+}
+
+export interface AiFile {
+  data: Uint8Array;
+  mediaType: string;
 }
 
 export interface AiCallMeta {
@@ -38,7 +45,13 @@ export type AiErrorCode = "AI_FIXTURE_MISSING" | "AI_NOT_CONFIGURED" | "AI_ERROR
 export type AiCallResult<T> = Result<{ output: T; meta: AiCallMeta }, { code: AiErrorCode; message: string }>;
 
 /** Live model call, injectable so tests exercise the live path without network. */
-export type LiveGenerate = (args: { model: string; instructions: string; prompt: string; schema: z.ZodType }) => Promise<unknown>;
+export type LiveGenerate = (args: {
+  model: string;
+  instructions: string;
+  prompt: string;
+  schema: z.ZodType;
+  files?: AiFile[];
+}) => Promise<unknown>;
 
 export interface AiRuntime {
   mode: AiMode;
@@ -64,11 +77,22 @@ export function fixturePath(dir: string, stage: AiStage, key: string, recorded: 
   return recorded ? join(dir, "recorded", stage, `${key}.json`) : join(dir, stage, `${key}.json`);
 }
 
-const defaultGenerate: LiveGenerate = async ({ model, instructions, prompt, schema }) => {
+// No `tools` option, ever: the invoice extractor must not be able to act (money rule 4). tests/guardrails asserts it.
+const defaultGenerate: LiveGenerate = async ({ model, instructions, prompt, schema, files }) => {
   const { output } = await generateText({
     model: anthropic(model),
     instructions,
-    prompt,
+    prompt: files?.length
+      ? [
+          {
+            role: "user",
+            content: [
+              ...files.map((f) => ({ type: "file" as const, data: f.data, mediaType: f.mediaType })),
+              { type: "text" as const, text: prompt },
+            ],
+          },
+        ]
+      : prompt,
     temperature: 0,
     output: Output.object({ schema }),
   });
@@ -105,6 +129,7 @@ export async function callAi<T>(input: AiCallInput<T>, rt: AiRuntime): Promise<A
         instructions: input.instructions,
         prompt: input.prompt,
         schema: input.schema,
+        ...(input.files ? { files: input.files } : {}),
       });
     } catch (e) {
       return err({ code: "AI_ERROR", message: e instanceof Error ? e.message : "Model call failed" });

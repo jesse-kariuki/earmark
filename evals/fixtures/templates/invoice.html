@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Invoice {{invoiceNumber}}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: #1f2937; background: {{pageBackground}}; }
+  .sheet { width: 760px; margin: 24px auto; padding: 48px 56px; background: #fff; transform: {{sheetTransform}}; box-shadow: {{sheetShadow}}; position: relative; }
+  .shade { position: absolute; inset: 0; background: {{sheetShade}}; pointer-events: none; }
+  header { display: flex; justify-content: space-between; border-bottom: 3px solid #1e3a5f; padding-bottom: 16px; }
+  h1 { margin: 0; font-size: 26px; color: #1e3a5f; }
+  .crest { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #1e3a5f; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1e3a5f; }
+  .muted { color: #6b7280; font-size: 13px; }
+  .title { font-size: 20px; letter-spacing: 4px; margin: 28px 0 8px; }
+  table.meta td { padding: 2px 16px 2px 0; font-size: 14px; }
+  table.items { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 15px; }
+  table.items th { text-align: left; border-bottom: 1px solid #9ca3af; padding: 8px 0; }
+  table.items td { padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+  .amount, table.items th.amount { text-align: right; font-variant-numeric: tabular-nums; }
+  .total td { font-weight: bold; border-bottom: none; border-top: 2px solid #1e3a5f; font-size: 17px; }
+  .pay { margin-top: 28px; padding: 14px 16px; background: #f3f4f6; font-size: 14px; }
+  footer { margin-top: 36px; font-size: 12px; color: #6b7280; }
+  .hidden-note { color: #ffffff; font-size: 2px; line-height: 2px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="shade"></div>
+  <header>
+    <div>
+      <h1>{{institutionName}}</h1>
+      <div class="muted">P.O. Box 1027 · Lakeview · Fictional demo institution</div>
+      <div class="muted">bursar's office</div>
+    </div>
+    <div class="crest">LV</div>
+  </header>
+
+  <div class="title">INVOICE</div>
+  <table class="meta">
+    <tr><td>Invoice no.</td><td><strong>{{invoiceNumber}}</strong></td></tr>
+    <tr><td>Student</td><td>{{studentName}}</td></tr>
+    <tr><td>Issued</td><td>{{issueDate}}</td></tr>
+    <tr><td>Due</td><td>{{dueDate}}</td></tr>
+  </table>
+
+  <p style="margin-top: 20px;">{{description}}</p>
+
+  <table class="items">
+    <thead><tr><th>Item</th><th class="amount">Amount ({{currency}})</th></tr></thead>
+    <tbody>
+      {{lineItemRows}}
+      <tr class="total"><td>Total due</td><td class="amount">{{currency}} {{total}}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="pay">
+    Pay by PayPal to: <strong>{{payoutAccount}}</strong><br />
+    Quote the invoice number with your payment.
+  </div>
+  {{hiddenNote}}
+
+  <footer>Thank you. This is a synthetic invoice generated for the Earmark demo. All names are fictional.</footer>
+</div>
+</body>
+</html>

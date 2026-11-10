@@ -1,0 +1,54 @@
+{
+  "stage": "invoice.extract",
+  "input": "02-clean-photo.png",
+  "output": {
+    "institutionName": {
+      "value": "Lakeview Secondary School",
+      "confidence": 0.9
+    },
+    "payoutAccount": {
+      "value": "sb-lakeview@business.example.com",
+      "confidence": 0.9
+    },
+    "invoiceNumber": {
+      "value": "LSS-2027-002",
+      "confidence": 0.9
+    },
+    "studentName": {
+      "value": "Brian Kamau",
+      "confidence": 0.9
+    },
+    "description": {
+      "value": "Term 1 2027 school fees",
+      "confidence": 0.9
+    },
+    "lineItems": [
+      {
+        "label": "Tuition",
+        "amount": "250.00"
+      },
+      {
+        "label": "Boarding",
+        "amount": "100.00"
+      }
+    ],
+    "total": {
+      "value": "350.00",
+      "confidence": 0.9
+    },
+    "currency": {
+      "value": "USD",
+      "confidence": 0.9
+    },
+    "issueDate": {
+      "value": "2026-11-01",
+      "confidence": 0.9
+    },
+    "dueDate": {
+      "value": "2027-01-05",
+      "confidence": 0.9
+    },
+    "containsInstructions": false
+  },
+  "model": "hand-authored"
+}
