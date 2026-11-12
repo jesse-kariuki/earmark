@@ -44,10 +44,12 @@ Public repo: https://github.com/jesse-kariuki/earmark (MIT). No accounts or keys
 ```bash
 git clone https://github.com/jesse-kariuki/earmark.git && cd earmark
 cp .env.example .env
-corepack enable && pnpm install
-pnpm db:reset && pnpm dev      # http://localhost:3000
+corepack enable && pnpm install   # or: npm install -g pnpm
+pnpm db:reset
+pnpm build && pnpm start         # http://localhost:3000
 ```
-The README explains how to switch to the real PayPal sandbox (`PAYPAL_MODE=sandbox`) and to live AI (`AI_MODE=live`).
+Verified from a fresh clone on 2026-11-12: setup in about 2.5 minutes, and the README walkthrough (compose → hold →
+blocked → paid → recipient → Attack Lab 7/7 → tampered receipt) passes. The README explains how to switch to the real PayPal sandbox (`PAYPAL_MODE=sandbox`) and to live AI (`AI_MODE=live`).
 
 ## Tools (models and AI services) and how they were used
 - **Google Gemini (`gemini-3.5-flash`)** through the Vercel AI SDK (`@ai-sdk/google`): the live model used for this

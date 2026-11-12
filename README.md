@@ -81,13 +81,13 @@ hash (the Guardian then follows a fixed script through the same tools and gate),
 - **Attack Lab:** 5/5 required scenarios blocked, plus 2 bonus (7/7), each naming its rule
 
 ## Run it locally (< 10 minutes)
-Needs Node 20+ and pnpm (`corepack enable` provides the pinned pnpm 10). No accounts or keys for the default mode.
+Needs Node 20+ and pnpm 10 (`corepack enable`, or `npm install -g pnpm` if corepack needs admin rights on Windows). No accounts or keys for the default mode.
 ```bash
 git clone https://github.com/jesse-kariuki/earmark.git && cd earmark
 cp .env.example .env          # works as-is: PAYPAL_MODE=mock, AI_MODE=fixture, no keys needed
 pnpm install
 pnpm db:reset
-pnpm dev                      # http://localhost:3000
+pnpm build && pnpm start      # http://localhost:3000 (or `pnpm dev`: slower, each page compiles on first visit)
 pnpm test && pnpm eval        # offline, deterministic
 pnpm exec playwright install chromium && pnpm e2e   # builds and runs the Playwright suite on :3100
 ```
