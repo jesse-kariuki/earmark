@@ -1,0 +1,25 @@
+{
+  "stage": "contract.compile",
+  "input": "Pay Brian's Term 1 school fees at Lakeview Secondary School, up to $200, only against a real invoice.",
+  "output": {
+    "purpose": {
+      "category": "school_fees",
+      "description": "Term 1 school fees",
+      "beneficiary": "Brian",
+      "period": "Term 1"
+    },
+    "payee": {
+      "institutionName": "Lakeview Secondary School"
+    },
+    "capMinor": 20000,
+    "currency": "USD",
+    "expiresAt": null,
+    "evidence": {
+      "required": "invoice_any"
+    },
+    "approvalThresholdMinor": null,
+    "notes": []
+  },
+  "model": "gemini-3.5-flash",
+  "recordedAt": "2026-11-12T05:41:13.799Z"
+}

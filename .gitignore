@@ -5,6 +5,7 @@
 
 # next
 /.next/
+/.next-demo/
 /out/
 /build
 next-env.d.ts
@@ -34,3 +35,6 @@ next-env.d.ts
 npm-debug.log*
 pnpm-debug.log*
 .vercel
+
+# demo video pipeline output
+/demo/out/

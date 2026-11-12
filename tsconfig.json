@@ -31,10 +31,11 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-demo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -100,6 +100,7 @@
 
 ## Session log
 <!-- 2026-11-02 · M0 · what was done · what's next -->
+- 2026-11-12 · M10 · Demo video pipeline in `demo/` (`npm run demo`): storyboard, SAPI/say/espeak/piper narration, Playwright recording (1280x720 @1.5x → 1080p, timings.json), ffmpeg build with captions and cards → 2:12 mp4 in mock PayPal mode. The demo sentence ($200) was compiled once by Gemini and recorded. `next.config` takes an optional `NEXT_DIST_DIR` so the demo build cannot be clobbered by a running `next dev`. · Human: sandbox buyer account for the popup take, team name + repo URL, own voice-over.
 - 2026-11-10 · M11 · `AI_PROVIDER=google` option (Gemini free tier) for live AI; env, header toggle, evals and docs follow the provider. Fixed `pnpm dev` (edge instrumentation bundle). 426 tests green. · Human: a Gemini or Anthropic key, then `AI_RECORD=1 pnpm eval:live`.
 - 2026-11-02 · M0 (partial) · Next 15 + Tailwind 4 + shadcn scaffold, git init, Zod env, PayPal types/mock/sandbox/client, smoke script, ESLint money rule, /api/health, render.yaml, Vitest+coverage, Playwright smoke. typecheck/lint/test/e2e green. · Blocked on human: sandbox accounts + .env, then `pnpm paypal:smoke`; Render deploy. 
 - 2026-11-02 · M0 · Day-0 sandbox smoke fully green (OAuth, partial final capture, idempotent replay, payout SUCCESS, void, webhook names, toolkit 1.11.0). Only remaining M0 item: Render deploy + `/api/health` on the public URL.

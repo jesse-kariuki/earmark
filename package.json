@@ -18,7 +18,9 @@
     "eval:contracts:live": "tsx --conditions=react-server evals/contracts-live.ts",
     "fixtures": "tsx --conditions=react-server scripts/gen-fixtures.ts",
     "eval": "tsx --conditions=react-server evals/run.ts",
-    "eval:live": "tsx --conditions=react-server evals/run.ts --live"
+    "eval:live": "tsx --conditions=react-server evals/run.ts --live",
+    "demo": "node demo/run.mjs",
+    "demo:prime": "tsx --conditions=react-server demo/prime.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.96",
@@ -57,6 +59,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.28",
     "fast-check": "^4.10.2",
+    "ffmpeg-static": "5.3.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
@@ -73,7 +76,8 @@
       "sharp",
       "@tailwindcss/oxide",
       "better-sqlite3",
-      "unrs-resolver"
+      "unrs-resolver",
+      "ffmpeg-static"
     ]
   }
 }

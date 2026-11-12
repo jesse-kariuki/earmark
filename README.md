@@ -83,6 +83,13 @@ If you change `SCHOOL_PAYPAL_EMAIL`, run `pnpm fixtures` so the sample invoices 
 | `pnpm keys` | Dev Ed25519 keypair for the school |
 | `pnpm fixtures` | Regenerates the 12 synthetic eval invoices |
 
+## Demo video pipeline
+`npm run demo` rebuilds the video from scratch: it narrates `demo/script.md` (your own clips in `demo/voice/scene-N.wav`,
+else `say` / piper / espeak / Windows SAPI), starts the app on :3200 with a fresh demo DB, records the 9 scenes with
+Playwright, then assembles `demo/out/earmark-demo.mp4` with ffmpeg (title card, narration at each scene's timestamp,
+burned-in captions, end card). Set `DEMO_TEAM` and `DEMO_REPO_URL` for the end card. With `PAYPAL_MODE=sandbox` it
+drives the real PayPal popup using `PAYPAL_SANDBOX_BUYER_EMAIL` / `PAYPAL_SANDBOX_BUYER_PASSWORD`.
+
 ## Architecture
 ```mermaid
 flowchart LR
