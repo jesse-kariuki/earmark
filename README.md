@@ -85,7 +85,7 @@ If you change `SCHOOL_PAYPAL_EMAIL`, run `pnpm fixtures` so the sample invoices 
 
 ## Demo video pipeline
 `npm run demo` rebuilds the video from scratch: it narrates `demo/script.md` (your own clips in `demo/voice/scene-N.wav`
-or `.mp3/.m4a/.ogg/.flac` win per scene; otherwise edge-tts with `en-KE-AsiliaNeural`, falling back to `en-US-AriaNeural`,
+or `.mp3/.m4a/.ogg/.flac` win per scene; otherwise edge-tts with the male voice `en-KE-ChilembaNeural`, falling back to `en-US-GuyNeural`,
 then a local TTS; `pip install edge-tts`), starts the app on :3200 with a fresh demo DB, records the 9 scenes with
 Playwright, then assembles `demo/out/earmark-demo.mp4` with ffmpeg (title card, narration at each scene's timestamp,
 burned-in captions, end card). Set `DEMO_TEAM` and `DEMO_REPO_URL` for the end card. With `PAYPAL_MODE=sandbox` it

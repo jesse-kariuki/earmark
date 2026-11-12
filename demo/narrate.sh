@@ -2,8 +2,8 @@
 # One narration clip per scene in demo/script.md → demo/out/audio/scene-N.wav (+ durations.json).
 # Per scene, in order of preference:
 #   1. your own recording: demo/voice/scene-N.{wav,mp3,m4a,ogg,flac} (always wins over generated audio)
-#   2. edge-tts (pip install edge-tts; needs internet) with voice en-KE-AsiliaNeural,
-#      falling back to en-US-AriaNeural if that voice is unavailable or fails
+#   2. edge-tts (pip install edge-tts; needs internet) with the male Kenyan voice en-KE-ChilembaNeural,
+#      falling back to en-US-GuyNeural (male) if that voice is unavailable or fails
 #   3. a local TTS: `say` (macOS), piper (needs PIPER_MODEL=/path/voice.onnx), espeak-ng / espeak, Windows SAPI
 #   4. none: the scene is silent; captions still burn in and record.ts estimates its length from the word count
 # Overrides: NARRATE_ENGINE=edge|say|piper|espeak|sapi|none, EDGE_VOICE, EDGE_FALLBACK_VOICE, EDGE_RATE (e.g. -5%).
@@ -13,8 +13,8 @@ cd "$(dirname "$0")/.."
 OUT=demo/out/audio
 TEXT=demo/out/text
 VOICE=demo/voice
-EDGE_VOICE="${EDGE_VOICE:-en-KE-AsiliaNeural}"
-EDGE_FALLBACK_VOICE="${EDGE_FALLBACK_VOICE:-en-US-AriaNeural}"
+EDGE_VOICE="${EDGE_VOICE:-en-KE-ChilembaNeural}"
+EDGE_FALLBACK_VOICE="${EDGE_FALLBACK_VOICE:-en-US-GuyNeural}"
 EDGE_RATE="${EDGE_RATE:-+0%}"
 FFMPEG="${FFMPEG:-$(command -v ffmpeg || node -p "require('ffmpeg-static')")}"
 TSX="node_modules/.bin/tsx"
@@ -47,7 +47,7 @@ if [ -z "$engine" ]; then
   if [ ${#EDGE[@]} -gt 0 ]; then engine=edge; else engine=$(local_engine); fi
 fi
 
-# Pick the edge voice once: Asilia if the service lists it, else Aria.
+# Pick the edge voice once: Chilemba if the service lists it, else Guy.
 voice="$EDGE_VOICE"
 if [ "$engine" = edge ]; then
   # Capture first: `… | grep -q` would close the pipe early, and pipefail would read that as "not listed".
@@ -75,14 +75,15 @@ speak() {
     espeak)
       "$(command -v espeak-ng || command -v espeak)" -s 160 -w "$raw.wav" -f "$txt" && echo "$raw.wav" ;;
     sapi)
-      # SAPI_VOICE picks an installed voice (e.g. "Microsoft Zira Desktop"); SAPI_RATE is -10..10.
+      # SAPI_VOICE picks an installed voice; default is the male "Microsoft David Desktop". SAPI_RATE is -10..10.
       powershell.exe -NoProfile -NonInteractive -Command "
         Add-Type -AssemblyName System.Speech
         \$s = New-Object System.Speech.Synthesis.SpeechSynthesizer
         \$want = '${SAPI_VOICE:-}'
         \$names = \$s.GetInstalledVoices() | Where-Object { \$_.Enabled } | ForEach-Object { \$_.VoiceInfo.Name }
         if (\$want -and (\$names -contains \$want)) { \$s.SelectVoice(\$want) }
-        elseif (\$names -contains 'Microsoft Zira Desktop') { \$s.SelectVoice('Microsoft Zira Desktop') }
+        elseif (\$names -contains 'Microsoft David Desktop') { \$s.SelectVoice('Microsoft David Desktop') }
+        else { try { \$s.SelectVoiceByHints([System.Speech.Synthesis.VoiceGender]::Male) } catch {} }
         \$s.Rate = ${SAPI_RATE:-0}
         \$s.SetOutputToWaveFile('$(winpath "$raw.wav")')
         \$s.Speak([IO.File]::ReadAllText('$(winpath "$txt")'))
