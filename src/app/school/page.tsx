@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import Link from "next/link";
 import { invoiceChip, StatusChip } from "@/components/StatusChip";
 import { SCHOOL_INSTITUTION_ID } from "@/lib/agents/registrar";
@@ -16,11 +16,16 @@ export default async function SchoolPage({ searchParams }: { searchParams: Promi
   const open = db
     .select()
     .from(earmarks)
-    .where(inArray(earmarks.status, ["held", "partially_paid"]))
+    // Also keep the Earmark named in ?ref= after it is paid, so the school still sees the result of the invoice it
+    // just issued (the page refreshes after issuing). The gate blocks any further invoice against it.
+    .where(ref ? or(inArray(earmarks.status, ["held", "partially_paid"]), eq(earmarks.id, ref)) : inArray(earmarks.status, ["held", "partially_paid"]))
     .orderBy(desc(earmarks.createdAt))
     .all()
     .filter((e) => e.contract.payee.institutionId === SCHOOL_INSTITUTION_ID);
-  const refs = open.map((e) => ({ id: e.id, label: `${e.id} · ${e.recipientName} · ${e.contract.purpose.period ?? e.contract.purpose.description}` }));
+  const refs = open.map((e) => ({
+    id: e.id,
+    label: `${e.id} · ${e.recipientName} · ${e.contract.purpose.period ?? e.contract.purpose.description}${e.status === "held" || e.status === "partially_paid" ? "" : ` (${e.status.replace(/_/g, " ")})`}`,
+  }));
   const issued = db
     .select()
     .from(invoices)

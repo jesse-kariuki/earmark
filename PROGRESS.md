@@ -4,15 +4,15 @@
 > Humans read it to see where things stand. Keep entries short.
 
 ## Current milestone
-**M11 — Hardening** code done → remaining work is human-only (deploy, keys, video, submit) · open human items: M0 Render deploy, M2/M4 live AI recordings (need ANTHROPIC_API_KEY), M2 sandbox Buttons run
+**M11 — Hardening** code done → remaining work is human-only (deploy, keys, video, submit) · open human items: M0 Render deploy + webhook registration, M4 live extractor recording; sandbox happy path ran end to end on 2026-11-12
 
 ## Milestones
 - [ ] M0 Scaffold & PayPal spike — Nov 2
 - [x] M1 Data, money, event chain — Nov 3
-- [ ] M2 Compose, contract, authorize — Nov 3 · all code + tests done; waiting on human: live contract recording (`pnpm eval:contracts:live`, needs ANTHROPIC_API_KEY) and one sandbox PayPal Buttons run
+- [ ] M2 Compose, contract, authorize — Nov 3 · all code + tests done; sandbox PayPal Buttons run done 2026-11-12 (real popup, $200 hold); waiting on human: live contract recording for the 10 eval sentences (`pnpm eval:contracts:live`)
 - [x] M3 Policy gate & tickets — Nov 7 (planned Nov 4)
 - [ ] M4 Legacy invoice intake + eval set — Nov 4 · all code + tests done (fixture 12/12, UI R05 e2e); waiting on human: live extractor run (`AI_RECORD=1 pnpm eval:live`, needs ANTHROPIC_API_KEY + ANTHROPIC_MODEL)
-- [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5 · mock slice + all integration tests done; waiting on human: sandbox happy path (needs `.env` with PayPal sandbox keys) and webhook registration on the Render URL
+- [ ] M5 Orchestrator, Guardian, webhooks (vertical slice) — Nov 5 · mock slice + all integration tests done; sandbox happy path done 2026-11-12 (hold → blocked R12 → capture $150 → $50 released → payout SUCCESS, confirmed on sandbox.paypal.com); waiting on human: webhook registration on the Render URL
 - [x] M6 Connected institution mode — Nov 10 (planned Nov 6)
 - [x] M7 Proof Receipt & recipient view — Nov 10 (planned Nov 6)
 - [x] M8 Ledger & trace polish — Nov 10 (planned Nov 7)
@@ -98,8 +98,13 @@
 - Not fixed: lookalike invoice numbers (`LSS-2027-OO1`); uploads are still human-approved, signed ones are signature-bound.
 - 2026-11-10 (human-approved stack change): live AI can use Google Gemini as well as Claude. `AI_PROVIDER=anthropic|google` picks the provider in `src/lib/ai/provider.ts` (`@ai-sdk/google` 4.0.105); Anthropic stays the default. Gemini needs `GOOGLE_GENERATIVE_AI_API_KEY` + `GOOGLE_MODEL`. No money rule changes: same Zod output, the extractor still has no tools. Not yet run live against Gemini.
 
+- 2026-11-12 · The PayPal Agent Toolkit's `get_order` returns the order as a JSON **string**, not an object · found in the first sandbox run: the Guardian read `status` off a string, reported the hold missing and (safely) proposed nothing. `paypal/toolkit.ts` now parses tool results (`parseToolResult`, tested). docs/03 §3.6 updated.
+- 2026-11-12 · Sandbox payouts start `PENDING`; without a webhook (localhost) the Earmark page's nudge confirms them on the next load · the school console shows "payout sent, waiting for PayPal to confirm" in sandbox. The school console also keeps the `?ref=` Earmark listed after it is paid, so the school still sees the result it just caused (in mock a second seeded hold hid this).
+- 2026-11-12 · e2e pins `SCHOOL_PAYPAL_EMAIL` to the sample invoices' address · `.env` now names the real sandbox school (`schoolbusinessplatform@…`), and the samples (generated with `sb-lakeview@…`) would otherwise be blocked by R05 — correctly. In sandbox the legacy upload samples are R05-blocked until `pnpm fixtures` is re-run with the real address; the Attack Lab is unaffected (own throwaway DB).
+
 ## Session log
 <!-- 2026-11-02 · M0 · what was done · what's next -->
+- 2026-11-12 · M5/M10 · First end-to-end sandbox run of the app, filmed: real PayPal popup (new one-page review, `#one-time-cta`), and the buyer's real sandbox.paypal.com balance shown before / after the hold / after the blocked attempt / after payment (−$200, −$200, −$150; PayPal's activity list shows the −$200 authorization and −$150 payment). Fixed: toolkit JSON-string results, popup login timing, school console losing its result. Video 2:53 (10 scenes). 429 tests + 12 e2e green.
 - 2026-11-12 · M10 · Demo video pipeline in `demo/` (`npm run demo`): storyboard, SAPI/say/espeak/piper narration, Playwright recording (1280x720 @1.5x → 1080p, timings.json), ffmpeg build with captions and cards → 2:12 mp4 in mock PayPal mode. The demo sentence ($200) was compiled once by Gemini and recorded. `next.config` takes an optional `NEXT_DIST_DIR` so the demo build cannot be clobbered by a running `next dev`. · Human: sandbox buyer account for the popup take, team name + repo URL, own voice-over.
 - 2026-11-10 · M11 · `AI_PROVIDER=google` option (Gemini free tier) for live AI; env, header toggle, evals and docs follow the provider. Fixed `pnpm dev` (edge instrumentation bundle). 426 tests green. · Human: a Gemini or Anthropic key, then `AI_RECORD=1 pnpm eval:live`.
 - 2026-11-02 · M0 (partial) · Next 15 + Tailwind 4 + shadcn scaffold, git init, Zod env, PayPal types/mock/sandbox/client, smoke script, ESLint money rule, /api/health, render.yaml, Vitest+coverage, Playwright smoke. typecheck/lint/test/e2e green. · Blocked on human: sandbox accounts + .env, then `pnpm paypal:smoke`; Render deploy. 

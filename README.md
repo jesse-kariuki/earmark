@@ -86,10 +86,13 @@ If you change `SCHOOL_PAYPAL_EMAIL`, run `pnpm fixtures` so the sample invoices 
 ## Demo video pipeline
 `npm run demo` rebuilds the video from scratch: it narrates `demo/script.md` (your own clips in `demo/voice/scene-N.wav`
 or `.mp3/.m4a/.ogg/.flac` win per scene; otherwise edge-tts with the male voice `en-KE-ChilembaNeural`, falling back to `en-US-GuyNeural`,
-then a local TTS; `pip install edge-tts`), starts the app on :3200 with a fresh demo DB, records the 9 scenes with
+then a local TTS; `pip install edge-tts`), starts the app on :3200 with a fresh demo DB, records the 10 scenes with
 Playwright, then assembles `demo/out/earmark-demo.mp4` with ffmpeg (title card, narration at each scene's timestamp,
 burned-in captions, end card). Set `DEMO_TEAM` and `DEMO_REPO_URL` for the end card. With `PAYPAL_MODE=sandbox` it
-drives the real PayPal popup using `PAYPAL_SANDBOX_BUYER_EMAIL` / `PAYPAL_SANDBOX_BUYER_PASSWORD`.
+drives the real PayPal popup using `PAYPAL_SANDBOX_BUYER_EMAIL` / `PAYPAL_SANDBOX_BUYER_PASSWORD`, and films the buyer's
+real balance on sandbox.paypal.com before the hold, after it, after the blocked attempt and after payment
+(−$200 / −$200 / −$150 since the start; readings in `demo/out/timings.json`). Each sandbox run really moves $150 of
+sandbox money.
 
 ## Architecture
 ```mermaid

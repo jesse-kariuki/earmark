@@ -15,6 +15,16 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
     // Separate DB so e2e never touches the dev data; ANTHROPIC_API_KEY blank so nothing calls a live model.
-    env: { PAYPAL_MODE: "mock", AI_MODE: "fixture", DATABASE_PATH: ".data/e2e.db", ANTHROPIC_API_KEY: "", RATE_LIMIT_PER_MIN: "100000" },
+    // SCHOOL_PAYPAL_EMAIL pinned to the address the sample invoices were generated with, so a real sandbox school in
+    // .env doesn't make R05 block them.
+    env: {
+      PAYPAL_MODE: "mock",
+      AI_MODE: "fixture",
+      DATABASE_PATH: ".data/e2e.db",
+      ANTHROPIC_API_KEY: "",
+      AI_PROVIDER: "anthropic",
+      SCHOOL_PAYPAL_EMAIL: "sb-lakeview@business.example.com",
+      RATE_LIMIT_PER_MIN: "100000",
+    },
   },
 });

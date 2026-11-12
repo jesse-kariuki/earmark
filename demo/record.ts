@@ -1,13 +1,14 @@
 // Records the demo (demo/script.md) with Playwright: headed Chromium at 1920x1080 with video on.
-// Each scene starts on a timestamp written to demo/out/timings.json, pauses ~1.5 s after every visible change,
+// Each scene starts on a timestamp written to demo/out/timings.json, pauses ~1.2 s after every visible change,
 // and is held until its narration clip (demo/out/audio/durations.json) has finished.
 // PayPal: mock mode clicks the mock button; sandbox mode drives the real popup with
-// PAYPAL_SANDBOX_BUYER_EMAIL / PAYPAL_SANDBOX_BUYER_PASSWORD (never hardcoded).
+// PAYPAL_SANDBOX_BUYER_EMAIL / PAYPAL_SANDBOX_BUYER_PASSWORD (never hardcoded), and films the buyer's real
+// sandbox.paypal.com balance before the hold, after it, after the blocked attempt and after payment.
 // Env: DEMO_URL (default http://localhost:3200), HEADLESS=1, DEMO_TEAM, DEMO_REPO_URL.
 import "dotenv/config";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type BrowserContext, chromium, expect, type Locator, type Page } from "@playwright/test";
+import { type Browser, type BrowserContext, chromium, expect, type Locator, type Page } from "@playwright/test";
 import { DEMO_SENTENCE } from "./config";
 import { estimateSeconds, NARRATION_LEAD, parseScript } from "./script";
 import { readDurations, type Timings } from "./tools";
@@ -15,7 +16,7 @@ import { readDurations, type Timings } from "./tools";
 const BASE = (process.env.DEMO_URL ?? "http://localhost:3200").replace(/\/$/, "");
 const OUT = "demo/out";
 const RAW = `${OUT}/raw`;
-const PAUSE = 1500;
+const PAUSE = 1200;
 const SIZE = { width: 1920, height: 1080 };
 // The app is laid out for laptop widths: record 1280x720 CSS pixels at 1.5x, which renders a sharp 1920x1080 frame
 // with readable text (a 1920-wide viewport leaves the UI small in the middle of the screen).
@@ -26,6 +27,11 @@ const durations = readDurations();
 const timings: Timings = { video: "", scenes: [], end: 0 };
 let t0 = 0;
 const now = () => (Date.now() - t0) / 1000;
+let current: Page | undefined;
+
+const PAYPAL_WEB = "https://www.sandbox.paypal.com";
+/** Buyer balance readings taken from sandbox.paypal.com during the recording (minor units). */
+const balances: { label: string; availableMinor: number; at: number }[] = [];
 
 // A visible cursor, so viewers can follow the clicks (Playwright's mouse has none on video).
 const CURSOR = `(() => {
@@ -62,6 +68,13 @@ async function smoothScroll(page: Page, y: number) {
   await page.waitForTimeout(900);
 }
 
+/** The school's genuine invoice: Tuition $120 + Activity fee $30 = $150 (under the $200 cap). */
+async function fillInvoice(page: Page) {
+  await page.getByRole("textbox", { name: "Amount 1", exact: true }).fill("120.00");
+  await page.getByRole("textbox", { name: "Item 2", exact: true }).fill("Activity fee");
+  await page.getByRole("textbox", { name: "Amount 2", exact: true }).fill("30.00");
+}
+
 async function scene(page: Page, n: number, body: () => Promise<void>) {
   const def = scenes.find((s) => s.n === n);
   if (!def) throw new Error(`script.md has no Scene ${n}`);
@@ -74,39 +87,140 @@ async function scene(page: Page, n: number, body: () => Promise<void>) {
   timings.scenes.push({ n, title: def.title, start: Math.round(start * 1000) / 1000, end: Math.round(now() * 1000) / 1000 });
 }
 
+function buyerCredentials() {
+  const email = process.env.PAYPAL_SANDBOX_BUYER_EMAIL;
+  const password = process.env.PAYPAL_SANDBOX_BUYER_PASSWORD;
+  if (!email || !password) throw new Error("PayPal sandbox mode: set PAYPAL_SANDBOX_BUYER_EMAIL and PAYPAL_SANDBOX_BUYER_PASSWORD (a sandbox buyer account).");
+  return { email, password };
+}
+
+/** PayPal's two-step login. Its fields animate in, so each gets a moment to settle before typing, otherwise the
+ *  input is lost and Log In never lands. Also handles a remembered email (password only). */
+async function paypalLogin(p: Page) {
+  const { email, password } = buyerCredentials();
+  const emailBox = p.locator("#email");
+  const pw = p.locator("#password");
+  await emailBox.or(pw).first().waitFor({ timeout: 45_000 });
+  if (await emailBox.isVisible()) {
+    await p.waitForTimeout(1000);
+    await emailBox.fill(email);
+    const next = p.locator("#btnNext");
+    if (await next.isVisible()) await next.click();
+  }
+  await pw.waitFor({ state: "visible", timeout: 30_000 });
+  await p.waitForTimeout(1500);
+  await pw.fill(password);
+  await p.locator("#btnLogin").click();
+}
+
 async function holdWithPayPal(page: Page, context: BrowserContext) {
   const mock = page.getByRole("button", { name: "Hold with PayPal (mock)" });
   if (await mock.isVisible()) {
     await click(page, mock);
     return;
   }
-  const email = process.env.PAYPAL_SANDBOX_BUYER_EMAIL;
-  const password = process.env.PAYPAL_SANDBOX_BUYER_PASSWORD;
-  if (!email || !password) throw new Error("PayPal sandbox mode: set PAYPAL_SANDBOX_BUYER_EMAIL and PAYPAL_SANDBOX_BUYER_PASSWORD (a sandbox personal account).");
-
   const button = page.frameLocator('iframe[title="PayPal"]').first().locator('[data-funding-source="paypal"]').first();
   await button.waitFor({ timeout: 30_000 });
   const opened = now();
   const [popup] = await Promise.all([context.waitForEvent("page"), click(page, button)]);
   await popup.waitForLoadState("domcontentloaded");
 
-  const emailBox = popup.locator("#email");
-  await emailBox.waitFor({ timeout: 45_000 });
-  await emailBox.fill(email);
-  const next = popup.locator("#btnNext");
-  if (await next.isVisible()) await next.click();
-  const pw = popup.locator("#password");
-  await pw.waitFor({ timeout: 30_000 });
-  await pw.fill(password);
-  await popup.locator("#btnLogin").click();
-  // The review page's submit button has changed names over the years; take the first that appears.
-  const approve = popup.locator('#payment-submit-btn, [data-testid="submit-button-initial"], button:has-text("Continue"), button:has-text("Pay")').first();
+  // Signed in already (the session from paypalSession) goes straight to review; otherwise log in first.
+  // Newer one-page review: #one-time-cta ("Pay"); older two-step review: submit-button-initial / payment-submit-btn.
+  const approve = popup.locator('#one-time-cta, [data-testid="submit-button-initial"], #payment-submit-btn').first();
+  await approve
+    .or(popup.locator("#email, #password"))
+    .first()
+    .waitFor({ timeout: 45_000 })
+    .catch(async (e: unknown) => {
+      await popup.screenshot({ path: `${OUT}/popup-fail.png` }).catch(() => {});
+      const buttons = await popup.locator("button:visible, input:visible").evaluateAll((els) => els.map((e) => `${e.tagName}#${e.id} [${(e as HTMLElement).dataset.testid ?? ""}] ${(e as HTMLElement).innerText?.trim().slice(0, 40) ?? ""}`)).catch(() => []);
+      console.error(`record: unexpected PayPal popup at ${popup.url()} (screenshot: ${OUT}/popup-fail.png)\n  ${buttons.join("\n  ")}`);
+      throw e;
+    });
+  if (!(await approve.isVisible())) await paypalLogin(popup);
   await approve.waitFor({ timeout: 60_000 });
+  // Pay from the PayPal balance, so the hold shows on the balance we film.
+  const balance = popup.locator('[data-testid="BALANCEUSD-funding-option"]');
+  if ((await balance.count()) && !(await balance.isChecked())) await balance.check({ force: true });
   await beat(popup, 800);
   await approve.click();
   await popup.waitForEvent("close", { timeout: 60_000 });
   const videoPath = await popup.video()?.path();
   if (videoPath) timings.popup = { video: videoPath.replace(/\\/g, "/"), start: opened, end: now() };
+}
+
+/** Sign the buyer in to sandbox.paypal.com in an unrecorded context; the recording reuses the session. */
+async function paypalSession(browser: Browser) {
+  const ctx = await browser.newContext({ viewport: VIEW });
+  const p = await ctx.newPage();
+  await p.goto(`${PAYPAL_WEB}/myaccount/summary`);
+  if (!p.url().includes("/myaccount")) await paypalLogin(p);
+  await p.getByText("PayPal balance").first().waitFor({ timeout: 60_000 });
+  const state = await ctx.storageState();
+  await ctx.close();
+  return state;
+}
+
+const BALANCE_TEXT = /^US\$[\d,]+\.\d{2}$/;
+
+function parseUsd(text: string): number {
+  const m = /US\$([\d,]+)\.(\d{2})/.exec(text);
+  if (!m) throw new Error(`No balance in "${text}"`);
+  return Number(m[1]!.replace(/,/g, "")) * 100 + Number(m[2]);
+}
+
+const signedUsd = (minor: number) => `${minor < 0 ? "−" : minor > 0 ? "+" : ""}$${(Math.abs(minor) / 100).toFixed(2)}`;
+
+/** Film the buyer's real balance on sandbox.paypal.com, with a banner naming the account and the change since the
+ *  first reading (computed from what PayPal shows), then go back to `back`. */
+async function showPayPalBalance(page: Page, label: string, expectDeltaMinor: number | null, back: string) {
+  await page.goto(`${PAYPAL_WEB}/myaccount/summary`);
+  if (!page.url().includes("/myaccount")) await paypalLogin(page);
+  const amount = page.getByText(BALANCE_TEXT).first();
+  await amount.waitFor({ timeout: 60_000 });
+  // PayPal keeps polling (never network-idle); give the recent-activity list a moment to render instead.
+  await page.getByText("Recent activity").first().waitFor({ timeout: 4000 }).catch(() => {});
+  // Close PayPal's cookie banner so it doesn't cover the page (sandbox only; accepting changes nothing real).
+  const cookies = page.getByRole("button", { name: "Yes, I accept" });
+  if (await cookies.isVisible().catch(() => false)) await cookies.click().catch(() => {});
+  const available = parseUsd(await amount.innerText());
+  const first = balances[0]?.availableMinor ?? available;
+  balances.push({ label, availableMinor: available, at: Math.round(now() * 1000) / 1000 });
+  const delta = available - first;
+  const change = balances.length > 1 ? `Available ${signedUsd(delta)} since the start` : "Starting balance";
+  console.log(`record: PayPal balance (${label}): US$${(available / 100).toFixed(2)} · ${change}`);
+  if (expectDeltaMinor !== null && delta !== expectDeltaMinor) {
+    console.warn(`record: expected ${signedUsd(expectDeltaMinor)} since the start, PayPal shows ${signedUsd(delta)}`);
+  }
+  await page.evaluate(
+    ({ label, change, pattern }) => {
+      const re = new RegExp(pattern);
+      const bar = document.createElement("div");
+      bar.style.cssText =
+        "position:fixed;left:0;right:0;bottom:0;z-index:2147483646;display:flex;justify-content:space-between;align-items:center;gap:24px;padding:14px 28px;background:#042f2e;color:#f0fdfa;font:600 17px/1.35 'Segoe UI',Arial,sans-serif;box-shadow:0 -4px 18px rgba(0,0,0,.25)";
+      bar.innerHTML = `<span>Live · Grace's PayPal sandbox account (sandbox.paypal.com)<br><span style="font-weight:400;opacity:.85">${label}</span></span><span style="font-size:22px">${change}</span>`;
+      // On <html>, not <body>: PayPal re-renders <body> and would drop it (the demo cursor lives there too).
+      document.documentElement.appendChild(bar);
+      const el = [...document.querySelectorAll<HTMLElement>("body *")].find((e) => e.children.length === 0 && re.test(e.textContent?.trim() ?? ""));
+      // The balance card: the nearest ancestor that also holds its "Transfer Funds" button.
+      let card: HTMLElement | null | undefined = el;
+      while (card && !card.textContent?.includes("Transfer Funds")) card = card.parentElement;
+      if (card) {
+        // A positioned ring over the balance card, also on <html> so a re-render cannot remove it.
+        const r = card.getBoundingClientRect();
+        const ring = document.createElement("div");
+        ring.style.cssText = `position:absolute;z-index:2147483645;pointer-events:none;left:${r.left + scrollX - 8}px;top:${r.top + scrollY - 8}px;width:${r.width + 16}px;height:${r.height + 16}px;border:4px solid rgb(13,148,136);border-radius:20px`;
+        document.documentElement.appendChild(ring);
+      }
+    },
+    { label, change, pattern: BALANCE_TEXT.source },
+  );
+  const box = await amount.boundingBox();
+  // Point just under the amount, so the cursor never covers a digit.
+  if (box) await page.mouse.move(box.x + box.width * 0.3, box.y + box.height + 40, { steps: 18 });
+  await beat(page, 3500);
+  await page.goto(back);
 }
 
 function card(title: string, sub: string, foot: string): string {
@@ -145,9 +259,16 @@ async function main() {
   await renderCards(cards);
   await cards.close();
 
-  const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, recordVideo: { dir: RAW, size: SIZE }, baseURL: BASE });
+  // Sandbox mode films the buyer's real PayPal balance; the mock has no account to show.
+  const { paypalMode } = (await health.json()) as { paypalMode?: string };
+  const live = paypalMode === "sandbox";
+  if (!live) console.warn(`record: PAYPAL_MODE=${paypalMode}: the PayPal balance shots are skipped (they need the sandbox)`);
+  const storageState = live ? await paypalSession(browser) : undefined;
+
+  const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, recordVideo: { dir: RAW, size: SIZE }, baseURL: BASE, storageState });
   await context.addInitScript(CURSOR);
   const page = await context.newPage();
+  current = page;
   t0 = Date.now();
   page.setDefaultTimeout(30_000);
 
@@ -166,7 +287,12 @@ async function main() {
   });
 
   await scene(page, 2, async () => {
-    await page.goto("/compose");
+    if (live) await showPayPalBalance(page, "Before: nothing held", null, "/compose");
+    else await page.goto("/compose");
+  });
+
+  await scene(page, 3, async () => {
+    if (!page.url().endsWith("/compose")) await page.goto("/compose");
     await beat(page, 800);
     const box = page.locator("#sentence");
     await click(page, box);
@@ -177,7 +303,7 @@ async function main() {
     await beat(page);
   });
 
-  await scene(page, 3, async () => {
+  await scene(page, 4, async () => {
     await click(page, page.getByRole("button", { name: "Approve contract" }));
     await beat(page);
     await holdWithPayPal(page, context);
@@ -185,36 +311,48 @@ async function main() {
     earmarkId = page.url().split("/earmarks/")[1]!.split(/[?#]/)[0]!;
     await expect(page.getByText(/\$200\.00 is held at PayPal, not sent\./)).toBeVisible();
     await beat(page);
+    if (live) await showPayPalBalance(page, "After the hold: $200.00 held, nothing sent", -20000, `/school?ref=${earmarkId}`);
   });
 
-  await scene(page, 4, async () => {
+  await scene(page, 5, async () => {
     await page.goto(`/school?ref=${earmarkId}`);
     await beat(page, 800);
-    await page.getByRole("textbox", { name: "Amount 1", exact: true }).fill("120.00");
-    await page.getByRole("textbox", { name: "Item 2", exact: true }).fill("Activity fee");
-    await page.getByRole("textbox", { name: "Amount 2", exact: true }).fill("30.00");
+    await fillInvoice(page);
     await beat(page, 900);
     await click(page, page.getByRole("button", { name: "Demo: alter it after signing" }));
     const blocked = page.getByRole("status").getByText(/blocked by R12_SIGNATURE_VALID/);
     await expect(blocked).toBeVisible({ timeout: 20_000 });
     await blocked.scrollIntoViewIfNeeded();
     await beat(page);
+    if (live) {
+      await showPayPalBalance(page, "After the altered invoice was blocked: no money moved", -20000, `/school?ref=${earmarkId}`);
+      await expect(page.getByRole("button", { name: "Issue signed invoice" })).toBeVisible();
+    }
   });
 
-  await scene(page, 5, async () => {
+  await scene(page, 6, async () => {
     await smoothScroll(page, 0);
+    // The balance shot reloaded the school console, so the genuine invoice lines are entered again.
+    if (live) await fillInvoice(page);
     await click(page, page.getByRole("button", { name: "Issue signed invoice" }));
-    const paid = page.getByRole("status").getByText(/paid\. The money reached the school/);
-    await expect(paid).toBeVisible({ timeout: 30_000 });
+    // Mock confirms the payout at once; a real sandbox payout starts PENDING ("payout sent, waiting for PayPal to confirm").
+    const paid = page.getByRole("status").getByText(/paid\. The money reached the school|payout sent, waiting for PayPal to confirm/);
+    await expect(paid).toBeVisible({ timeout: 60_000 });
     await paid.scrollIntoViewIfNeeded();
     await beat(page);
     await smoothScroll(page, 2000);
     await beat(page);
   });
 
-  await scene(page, 6, async () => {
-    await page.goto(`/earmarks/${earmarkId}`);
-    await expect(page.getByText("Paid", { exact: true }).first()).toBeVisible();
+  await scene(page, 7, async () => {
+    // Each load of the Earmark page asks PayPal for the payout status (no webhook on localhost), so reload until paid.
+    const paidChip = page.getByText("Paid", { exact: true }).first();
+    for (let i = 0; ; i++) {
+      await page.goto(`/earmarks/${earmarkId}`);
+      if (await paidChip.isVisible()) break;
+      if (i === 20) throw new Error("PayPal did not confirm the payout within ~1 minute");
+      await page.waitForTimeout(3000);
+    }
     await beat(page, 2500);
     await click(page, page.getByRole("button", { name: "Open trace" }));
     const trace = page.getByRole("dialog", { name: "Trace" });
@@ -222,9 +360,10 @@ async function main() {
     await beat(page);
     await trace.getByText("PayPal Agent Toolkit").first().scrollIntoViewIfNeeded();
     await beat(page);
+    if (live) await showPayPalBalance(page, "After payment: $150.00 to the school, $50.00 hold released", -15000, `/earmarks/${earmarkId}`);
   });
 
-  await scene(page, 7, async () => {
+  await scene(page, 8, async () => {
     await page.goto(`/r/${earmarkId}`);
     await expect(page.getByRole("heading", { name: /fees were paid/ })).toBeVisible();
     await beat(page, 2500);
@@ -235,7 +374,7 @@ async function main() {
     await beat(page);
   });
 
-  await scene(page, 8, async () => {
+  await scene(page, 9, async () => {
     await page.goto("/lab");
     await beat(page, 1000);
     await click(page, page.getByRole("button", { name: "Run all" }));
@@ -246,7 +385,7 @@ async function main() {
     await smoothScroll(page, 0);
   });
 
-  await scene(page, 9, async () => {
+  await scene(page, 10, async () => {
     await page.goto(`/receipt/${earmarkId}`);
     await expect(page.getByTestId("chain-status")).toHaveText(/Chain verified/);
     await beat(page, 2500);
@@ -261,11 +400,16 @@ async function main() {
   timings.video = ((await video?.path()) ?? "").replace(/\\/g, "/");
   await browser.close();
 
-  writeFileSync(join(OUT, "timings.json"), `${JSON.stringify({ ...timings, recordedAt: new Date().toISOString(), base: BASE }, null, 2)}\n`);
+  writeFileSync(join(OUT, "timings.json"), `${JSON.stringify({ ...timings, balances, recordedAt: new Date().toISOString(), base: BASE }, null, 2)}\n`);
   console.log(`record: ${timings.scenes.length} scenes, ${timings.end.toFixed(1)}s of video → ${timings.video}`);
 }
 
-main().catch((e: unknown) => {
+main().catch(async (e: unknown) => {
   console.error(e instanceof Error ? e.message : e);
+  // What the page showed when it failed, for debugging a run that cannot be watched.
+  await current?.screenshot({ path: `${OUT}/record-fail.png`, fullPage: true }).then(
+    () => console.error(`record: screenshot of the failing page: ${OUT}/record-fail.png`),
+    () => {},
+  );
   process.exit(1);
 });

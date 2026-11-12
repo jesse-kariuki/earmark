@@ -190,6 +190,8 @@ export const paypalToolkit = new PayPalAgentToolkit({
 // guardian tools = { ...ourTools, ...paypalToolkit.getTools() }
 ```
 In `PAYPAL_MODE=mock`, replace with stub tools of the same names that read from the mock store.
+**Found in sandbox (2026-11-12):** the toolkit's `execute` returns the PayPal response as a JSON *string*
+(and a `{ok:false,status:404,…}` string on errors); `paypal/toolkit.ts` parses it before the Guardian reads it.
 Show the toolkit tool calls in the trace drawer — judges for "Best Use of PayPal + AI" need to see them.
 
 **MCP server (developer + demo):** add `.mcp.json` so Claude Code (and the demo narrative) can query the

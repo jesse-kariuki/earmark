@@ -22,6 +22,17 @@ export const TOOLKIT_ACTIONS = { orders: { get: true }, transactions: { list: tr
 
 type Executable = { execute?: (args: unknown, options: unknown) => Promise<unknown> };
 
+/** The toolkit's tools return the PayPal response as a JSON string (found in the first sandbox run: the Guardian
+ *  read `status` off a string and reported the hold missing). Parse it so callers get the Orders v2 object. */
+export function parseToolResult(result: unknown): unknown {
+  if (typeof result !== "string") return result;
+  try {
+    return JSON.parse(result) as unknown;
+  } catch {
+    return { name: "UNPARSEABLE_TOOL_RESULT", message: result.slice(0, 200) };
+  }
+}
+
 function toolkitReadTools(): PayPalReadTools {
   const toolkit = new PayPalAgentToolkit({
     clientId: env.PAYPAL_CLIENT_ID!,
@@ -32,7 +43,7 @@ function toolkitReadTools(): PayPalReadTools {
   const run = async (name: string, args: unknown) => {
     const t = tools[name];
     if (!t?.execute) throw new Error(`PayPal Agent Toolkit has no ${name} tool`);
-    return t.execute(args, { toolCallId: `guardian-${name}`, messages: [] });
+    return parseToolResult(await t.execute(args, { toolCallId: `guardian-${name}`, messages: [] }));
   };
   return {
     source: "paypal-agent-toolkit",
