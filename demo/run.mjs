@@ -5,6 +5,8 @@
 //   4. record.ts    Playwright recording + demo/out/timings.json
 //   5. build.sh     ffmpeg → demo/out/earmark-demo.mp4
 // Env: DEMO_URL (use a running app), DEMO_PORT (3200), DEMO_SKIP_BUILD=1, HEADLESS=1, NARRATE_ENGINE, DEMO_TEAM, DEMO_REPO_URL.
+// `npm run demo -- --rebuild`: keep the last recording and narration, re-render the cards and re-assemble the mp4
+// (no app, no PayPal calls; use it after changing DEMO_TEAM / DEMO_REPO_URL or captions).
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -58,6 +60,14 @@ function killTree(child) {
 
 async function main() {
   const bash = findBash();
+  if (process.argv.includes("--rebuild")) {
+    const [c, a, o] = tsx("demo/record.ts");
+    step("cards", c, [...a, "--cards-only"], o);
+    step("build", bash, ["demo/build.sh"]);
+    console.log(`
+✔ demo/out/earmark-demo.mp4 re-assembled from the last recording (${Math.round((Date.now() - started) / 1000)}s)`);
+    return;
+  }
   const [cmd, args, o] = tsx("demo/prime.ts");
   step("demo:prime (recorded AI output for the demo sentence)", cmd, args, o);
   step("narrate", bash, ["demo/narrate.sh"]);

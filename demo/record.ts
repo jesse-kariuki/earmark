@@ -4,8 +4,10 @@
 // PayPal: mock mode clicks the mock button; sandbox mode drives the real popup with
 // PAYPAL_SANDBOX_BUYER_EMAIL / PAYPAL_SANDBOX_BUYER_PASSWORD (never hardcoded), and films the buyer's real
 // sandbox.paypal.com balance before the hold, after it, after the blocked attempt and after payment.
-// Env: DEMO_URL (default http://localhost:3200), HEADLESS=1, DEMO_TEAM, DEMO_REPO_URL.
+// Env: DEMO_URL (default http://localhost:3200), HEADLESS=1, DEMO_TEAM, DEMO_REPO_URL (default: the git remote).
+// `--cards-only` re-renders the title and end cards and exits (npm run demo -- --rebuild uses it).
 import "dotenv/config";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Browser, type BrowserContext, chromium, expect, type Locator, type Page } from "@playwright/test";
@@ -234,19 +236,36 @@ function card(title: string, sub: string, foot: string): string {
   </style></head><body><h1>${title}</h1><p>${sub}</p><small>${foot}</small></body></html>`;
 }
 
+/** The git remote as "github.com/owner/repo", for the end card. */
+function originUrl(): string | undefined {
+  try {
+    const url = execFileSync("git", ["remote", "get-url", "origin"], { encoding: "utf8" }).trim();
+    return url.replace(/^git@([^:]+):/, "$1/").replace(/^https?:\/\//, "").replace(/\.git$/, "") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function renderCards(context: BrowserContext) {
   const page = await context.newPage();
   await page.setViewportSize(SIZE);
   await page.setContent(card("Earmark", "money that keeps its promise", "PayPal sandbox · fictional names"));
   await page.screenshot({ path: `${OUT}/title.png` });
   const team = process.env.DEMO_TEAM ?? "Team Earmark";
-  const repo = process.env.DEMO_REPO_URL ?? "github.com/your-org/earmark";
+  const repo = process.env.DEMO_REPO_URL ?? originUrl() ?? "github.com/your-org/earmark";
   await page.setContent(card("Earmark", `${team}<br><span style="font-size:40px">${repo}</span>`, "Built for the PayPal AI Hackathon 2026 · sandbox only"));
   await page.screenshot({ path: `${OUT}/end.png` });
   await page.close();
 }
 
 async function main() {
+  if (process.argv.includes("--cards-only")) {
+    const browser = await chromium.launch({ headless: true });
+    await renderCards(await browser.newContext({ viewport: SIZE }));
+    await browser.close();
+    console.log("record: title and end cards re-rendered");
+    return;
+  }
   rmSync(RAW, { recursive: true, force: true });
   mkdirSync(RAW, { recursive: true });
 
